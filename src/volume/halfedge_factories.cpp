@@ -1,9 +1,9 @@
-#include "geometrycentral/surface/halfedge_factories.h"
+#include "geometrycentral/volume/halfedge_factories.h"
 
 // NOTE these are DEPRECATED, and exist only for compatability. Prefer the versions from surface_mesh_factories.h
 
 namespace geometrycentral {
-namespace surface {
+namespace volume {
 
 
 // (these just forward to the newly-named versions)

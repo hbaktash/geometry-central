@@ -8,6 +8,15 @@ endif()
 # List of .cpp files to be compiled
 SET(SRCS
 
+  volume/base_geometry_interface.cpp
+  volume/embedded_geometry_interface.cpp
+  volume/extrinsic_geometry_interface.cpp
+  volume/halfedge_factories.cpp
+  volume/meshio.cpp
+  volume/vertex_position_geometry.cpp
+  volume/simple_polygon_mesh.cpp
+  volume/surface_mesh.cpp
+
   surface/surface_mesh.cpp
   surface/manifold_surface_mesh.cpp
   surface/halfedge_factories.cpp  
@@ -139,6 +148,26 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/vector_heat_method.h
   ${INCLUDE_ROOT}/surface/vertex_position_geometry.h
   ${INCLUDE_ROOT}/surface/vertex_position_geometry.ipp
+
+  ${INCLUDE_ROOT}/volume/base_geometry_interface.h
+  ${INCLUDE_ROOT}/volume/embedded_geometry_interface.h
+  ${INCLUDE_ROOT}/volume/extrinsic_geometry_interface.h
+  ${INCLUDE_ROOT}/volume/halfedge_element_types.h
+  ${INCLUDE_ROOT}/volume/halfedge_element_types.ipp
+  ${INCLUDE_ROOT}/volume/halfedge_factories.h
+  ${INCLUDE_ROOT}/volume/halfedge_logic_templates.ipp
+  ${INCLUDE_ROOT}/volume/intrinsic_geometry_interface.h
+  ${INCLUDE_ROOT}/volume/manifold_surface_mesh.h
+  ${INCLUDE_ROOT}/volume/manifold_surface_mesh.ipp
+  ${INCLUDE_ROOT}/volume/meshio.h
+  ${INCLUDE_ROOT}/volume/mutation_manager.ipp
+  ${INCLUDE_ROOT}/volume/simple_polygon_mesh.h
+  ${INCLUDE_ROOT}/volume/surface_mesh_factories.h
+  ${INCLUDE_ROOT}/volume/surface_mesh_factories.ipp
+  ${INCLUDE_ROOT}/volume/surface_mesh.h
+  ${INCLUDE_ROOT}/volume/surface_mesh.ipp
+  ${INCLUDE_ROOT}/volume/vertex_position_geometry.h
+  ${INCLUDE_ROOT}/volume/vertex_position_geometry.ipp
 
   ${INCLUDE_ROOT}/utilities/combining_hash_functions.h
   ${INCLUDE_ROOT}/utilities/curve.h

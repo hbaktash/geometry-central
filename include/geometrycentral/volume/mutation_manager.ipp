@@ -1,9 +1,9 @@
 #pragma once
 
-#include "geometrycentral/surface/mutation_manager.h"
+#include "geometrycentral/volume/mutation_manager.h"
 
 namespace geometrycentral {
-namespace surface {
+namespace volume {
 
 // ======================================================
 // ======== Helpers to expose the "simple" interface

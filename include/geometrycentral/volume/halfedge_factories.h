@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometrycentral/surface/surface_mesh_factories.h"
+#include "geometrycentral/volume/surface_mesh_factories.h"
 
 #include <memory>
 #include <tuple>
@@ -10,7 +10,7 @@
 // These methods construct the connectivity and geometry of a mesh simultaneously.
 
 namespace geometrycentral {
-namespace surface {
+namespace volume {
 
 // Assumes manifoldness, errors our if not
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>

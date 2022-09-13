@@ -1,5 +1,5 @@
 namespace geometrycentral {
-namespace surface {
+namespace volume {
 
 
 template <typename T>

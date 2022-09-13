@@ -5,17 +5,17 @@
 // Make the element types hashable (this _should_ be doable for just the parent class, but I couldn't sort out how)
 namespace std {
 // clang-format off
-template <> struct hash<geometrycentral::surface::Vertex>         { std::size_t operator()(const geometrycentral::surface::Vertex& e)         const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::Halfedge>       { std::size_t operator()(const geometrycentral::surface::Halfedge& e)       const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::Corner>         { std::size_t operator()(const geometrycentral::surface::Corner& e)         const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::Edge>           { std::size_t operator()(const geometrycentral::surface::Edge& e)           const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::Face>           { std::size_t operator()(const geometrycentral::surface::Face& e)           const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::BoundaryLoop>   { std::size_t operator()(const geometrycentral::surface::BoundaryLoop& e)   const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::volume::Vertex>         { std::size_t operator()(const geometrycentral::volume::Vertex& e)         const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::volume::Halfedge>       { std::size_t operator()(const geometrycentral::volume::Halfedge& e)       const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::volume::Corner>         { std::size_t operator()(const geometrycentral::volume::Corner& e)         const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::volume::Edge>           { std::size_t operator()(const geometrycentral::volume::Edge& e)           const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::volume::Face>           { std::size_t operator()(const geometrycentral::volume::Face& e)           const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::volume::BoundaryLoop>   { std::size_t operator()(const geometrycentral::volume::BoundaryLoop& e)   const { return std::hash<size_t>{}(e.getIndex()); } };
 // clang-format on
 } // namespace std
 
 namespace geometrycentral {
-namespace surface {
+namespace volume {
 
 // clang-format off
 

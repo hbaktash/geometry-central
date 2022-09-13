@@ -1,10 +1,10 @@
-#include "geometrycentral/surface/vertex_position_geometry.h"
+#include "geometrycentral/volume/vertex_position_geometry.h"
 
 #include <fstream>
 #include <limits>
 
 namespace geometrycentral {
-namespace surface {
+namespace volume {
 
 VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh_)
     : EmbeddedGeometryInterface(mesh_), inputVertexPositions(vertexPositions) {

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "geometrycentral/surface/embedded_geometry_interface.h"
-#include "geometrycentral/surface/surface_mesh.h"
+#include "geometrycentral/volume/embedded_geometry_interface.h"
+#include "geometrycentral/volume/surface_mesh.h"
 
 #include <Eigen/SparseCore>
 
 namespace geometrycentral {
-namespace surface {
+namespace volume {
 
 
 class VertexPositionGeometry : public EmbeddedGeometryInterface {
@@ -70,4 +70,4 @@ private:
 } // namespace surface
 } // namespace geometrycentral
 
-#include "geometrycentral/surface/vertex_position_geometry.ipp"
+#include "geometrycentral/volume/vertex_position_geometry.ipp"

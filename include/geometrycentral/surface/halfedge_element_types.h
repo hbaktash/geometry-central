@@ -17,11 +17,9 @@ namespace surface {
 
 // === Types and inline methods for the halfedge mesh pointer and datatypes
 class SurfaceMesh;
+// class TetMesh;
 
-namespace volume {
-class TetMesh;
-class Tet;  
-}
+// will be using surface mesh as a parent
 
 class Vertex;
 class Halfedge;
@@ -29,19 +27,8 @@ class Corner;
 class Edge;
 class Face;
 class BoundaryLoop;
+// class Tet;
 
-
-namespace volume {
-struct TetAdjacentVertexNavigator;
-struct TetAdjacentEdgeNavigator;
-struct TetAdjacentFaceNavigator;
-
-struct TetAdjacentTetNavigator;
-
-struct VertexAdjacentTetNavigator;
-struct EdgeAdjacentTetNavigator;
-struct FaceAdjacentTetNavigator;
-}
 struct VertexAdjacentVertexNavigator;
 struct VertexIncomingHalfedgeNavigator;
 struct VertexOutgoingHalfedgeNavigator;
@@ -286,7 +273,6 @@ public:
   NavigationSetBase<FaceAdjacentEdgeNavigator> adjacentEdges() const;
   NavigationSetBase<FaceAdjacentFaceNavigator> adjacentFaces() const;
 };
-
 // using DynamicFace = DynamicElement<Face>;
 
 // == Range iterators
@@ -302,43 +288,34 @@ typedef RangeSetBase<FaceRangeF> FaceSet;
 // ==========================================================
 // ================          Tet          ==================
 // ==========================================================
+// class Tet : public Element<Tet, SurfaceMesh> {
+// public:
+//   // Constructors
+//   Tet();                              // construct an empty (null) element
+//   Tet(SurfaceMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
+  
+//   std::vector<size_t> adjVertices();
+  
+//   bool isDead() const;
 
-class Tet : public Element<Tet, SurfaceMesh> {
-public:
-  // Constructors
-  Face();                              // construct an empty (null) element
-  Face(SurfaceMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
-  // Face(const DynamicElement<Face>& e); // construct from a dynamic element of matching type
+//   // Properties
+//   bool isTet() const;
+//   size_t degree() const;
 
-  // Navigators
-  Halfedge halfedge() const;
-  BoundaryLoop asBoundaryLoop() const;
-  bool isDead() const;
-
-  // Properties
-  bool isBoundaryLoop() const;
-  bool isTriangle() const;
-  size_t degree() const;
-
-  // Iterators
-  NavigationSetBase<FaceAdjacentVertexNavigator> adjacentVertices() const;
-  NavigationSetBase<FaceAdjacentHalfedgeNavigator> adjacentHalfedges() const;
-  NavigationSetBase<FaceAdjacentCornerNavigator> adjacentCorners() const;
-  NavigationSetBase<FaceAdjacentEdgeNavigator> adjacentEdges() const;
-  NavigationSetBase<FaceAdjacentFaceNavigator> adjacentFaces() const;
-};
-
-// using DynamicFace = DynamicElement<Face>;
+//   // Iterators
+// };
+// using DynamicTet = DynamicElement<Tet>;
 
 // == Range iterators
 
-// All faces
-struct FaceRangeF {
-  static bool elementOkay(const SurfaceMesh& mesh, size_t ind);
-  typedef Face Etype;
-  typedef SurfaceMesh ParentMeshT;
-};
-typedef RangeSetBase<FaceRangeF> FaceSet;
+// All tets
+// struct TetRangeF {
+//   static bool elementOkay(const SurfaceMesh& mesh, size_t ind);
+//   typedef Tet Etype;
+//   typedef TetMesh ParentMeshT;
+// };
+// typedef RangeSetBase<TetRangeF> TetSet;
+
 
 // ==========================================================
 // ================     Boundary Loop      ==================
