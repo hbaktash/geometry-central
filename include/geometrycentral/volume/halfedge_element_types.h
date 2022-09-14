@@ -239,7 +239,6 @@ public:
   NavigationSetBase<EdgeAdjacentHalfedgeNavigator> adjacentHalfedges() const;
   NavigationSetBase<EdgeAdjacentInteriorHalfedgeNavigator> adjacentInteriorHalfedges() const;
   NavigationSetBase<EdgeAdjacentFaceNavigator> adjacentFaces() const;
-  NavigationSetBase<EdgeAdjacentTetNavigator> adjacentTets() const;
   
   std::array<Vertex, 2> adjacentVertices() const;
   
@@ -291,7 +290,6 @@ public:
   NavigationSetBase<FaceAdjacentCornerNavigator> adjacentCorners() const;
   NavigationSetBase<FaceAdjacentEdgeNavigator> adjacentEdges() const;
   NavigationSetBase<FaceAdjacentFaceNavigator> adjacentFaces() const;
-  NavigationSetBase<FaceAdjacentTetNavigator> adjacentTets() const;
 
   //lazy iterators
   std::array<Tet, 2> adjTets;
@@ -317,7 +315,7 @@ public:
   // Constructors
   Tet();                              // construct an empty (null) element
   Tet(TetMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
-  Tet(TetMesh* mesh, size_t ind, std::vector<size_t> vertices); // there is no cool halfEdge indicators for tets, so..
+  Tet(TetMesh* mesh, size_t ind, std::vector<Vertex> vertices); // there is no cool halfEdge indicators for tets, so..
 
   // Lazy iterators; probably should be protected (use getter/setter), but denote the lazy status.
   std::vector<Vertex> adjVertices;

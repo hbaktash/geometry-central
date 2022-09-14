@@ -478,81 +478,42 @@ inline Tet::Tet(TetMesh* mesh_, size_t ind_, std::vector<Vertex> vertices_) : El
 
 void Tet::buildAdjEdges(){
   if(adjVertices.size() == 0) throw std::logic_error("vertices should have been initialized first. (size=0)"); //logic?
-  
-}
-void buildAdjFaces(); // ..same..
-  
-  bool isDead() const;
-
-  // Properties
-  bool isTet() const;
-  size_t degree() const;
-// Navigators
-inline bool Face::isDead() const    { return mesh->faceIsDead(ind); }
-
-// Properties
-inline bool Face::isTriangle() const {
-  Halfedge he = halfedge();
-  return he == he.next().next().next();
-}
-inline size_t Face::degree() const {
-  size_t k = 0;
-  for (Halfedge h : adjacentHalfedges()) { k++; }
-  return k;
-}
-
-inline bool Face::isBoundaryLoop() const { return mesh->faceIsBoundaryLoop(ind); }
-
-// Navigation iterators
-inline NavigationSetBase<FaceAdjacentHalfedgeNavigator> Face::adjacentHalfedges() const { 
-  return NavigationSetBase<FaceAdjacentHalfedgeNavigator>(halfedge()); 
-}
-inline NavigationSetBase<FaceAdjacentVertexNavigator> Face::adjacentVertices() const { 
-  return NavigationSetBase<FaceAdjacentVertexNavigator>(halfedge()); 
-}
-inline NavigationSetBase<FaceAdjacentFaceNavigator> Face::adjacentFaces() const { 
-  return NavigationSetBase<FaceAdjacentFaceNavigator>(std::make_pair(halfedge(), halfedge())); 
-}
-inline NavigationSetBase<FaceAdjacentEdgeNavigator> Face::adjacentEdges() const { 
-  return NavigationSetBase<FaceAdjacentEdgeNavigator>(halfedge()); 
-}
-inline NavigationSetBase<FaceAdjacentCornerNavigator> Face::adjacentCorners() const { 
-  return NavigationSetBase<FaceAdjacentCornerNavigator>(halfedge()); 
-}
-
-
-// == Range iterators
-inline bool FaceRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
-  return !mesh.faceIsDead(ind);
-}
-
-// == Navigation iterators
-
-inline void FaceAdjacentVertexNavigator::advance() { currE = currE.next(); }
-inline bool FaceAdjacentVertexNavigator::isValid() const { return true; }
-inline Vertex FaceAdjacentVertexNavigator::getCurrent() const { return currE.vertex(); }
-
-inline void FaceAdjacentHalfedgeNavigator::advance() { currE = currE.next(); }
-inline bool FaceAdjacentHalfedgeNavigator::isValid() const { return true; }
-inline Halfedge FaceAdjacentHalfedgeNavigator::getCurrent() const { return currE; }
-
-inline void FaceAdjacentCornerNavigator::advance() { currE = currE.next(); }
-inline bool FaceAdjacentCornerNavigator::isValid() const { return true; }
-inline Corner FaceAdjacentCornerNavigator::getCurrent() const { return currE.corner(); }
-
-inline void FaceAdjacentEdgeNavigator::advance() { currE = currE.next(); }
-inline bool FaceAdjacentEdgeNavigator::isValid() const { return true; }
-inline Edge FaceAdjacentEdgeNavigator::getCurrent() const { return currE.edge(); }
-
-inline void FaceAdjacentFaceNavigator::advance() { 
-  currE.second = currE.second.sibling();
-  if(currE.first == currE.second) {
-    currE.first = currE.first.next(); 
-    currE.second = currE.first;
+  adjEdges.reserve((size_t)6); // general case? in which this function won't exist like this
+  for(Vertex v1: adjVertices){
+    for(Vertex v2: adjVertices){
+      if(v1 != v2) adjEdges.push_back(mesh->connectingEdge(v1, v2));
+    }
   }
 }
-inline bool FaceAdjacentFaceNavigator::isValid() const { return currE.first != currE.second && currE.second.isInterior(); }
-inline Face FaceAdjacentFaceNavigator::getCurrent() const { return currE.second.face(); }
+void Tet::buildAdjFaces(){
+  if(adjVertices.size() == 0) throw std::logic_error("vertices should have been initialized first. (size=0)"); //logic?
+  adjFaces.reserve(4); // general case? in which this function won't exist like this
+  for(Vertex v1: adjVertices){
+    std::vector<Vertex> triplet; // instead, we should have some set operations added to utils.
+    triplet.reserve(3);
+    for(Vertex v2: adjVertices){
+      if(v1 != v2) triplet.push_back(v2);
+    }
+    adjFaces.push_back(mesh->get_connecting_face(triplet[0], triplet[1], triplet[2]));
+  }
+}
+  
+inline bool Tet::isDead() const {
+  return adjVertices.size() < 4; // hmm, not really sure for now.
+}
+
+// Properties
+bool Tet::isTet() const {
+  return adjVertices.size() == 4;
+}
+size_t Tet::degree() const{
+  return adjVertices.size();
+}
+
+// == Range iterators
+inline bool TetRangeF::elementOkay(const TetMesh& mesh, size_t ind) {
+  return !mesh.tet_objects[ind].isDead();
+}
 
 
 // ==========================================================
