@@ -130,5 +130,5 @@ DenseMatrix<T> SurfaceMesh::getFaceVertexMatrix() {
 }
 
 
-} // namespace surface
+} // namespace volume
 } // namespace geometrycentral

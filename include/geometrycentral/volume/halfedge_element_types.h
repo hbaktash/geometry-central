@@ -317,7 +317,7 @@ public:
   Tet(TetMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
   Tet(TetMesh* mesh, size_t ind, std::vector<Vertex> vertices); // there is no cool halfEdge indicators for tets, so..
 
-  // Lazy iterators; probably should be protected (use getter/setter), but denote the lazy status.
+  // Lazy iterators; probably should be protected (use getter/setter)
   std::vector<Vertex> adjVertices;
   std::vector<Edge> adjEdges;
   std::vector<Face> adjFaces;
@@ -349,7 +349,6 @@ struct TetRangeF {
   typedef TetMesh ParentMeshT;
 };
 typedef RangeSetBase<TetRangeF> TetSet;
-
 
 // ==========================================================
 // ================     Boundary Loop      ==================
