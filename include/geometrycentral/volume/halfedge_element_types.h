@@ -291,8 +291,8 @@ public:
   NavigationSetBase<FaceAdjacentEdgeNavigator> adjacentEdges() const;
   NavigationSetBase<FaceAdjacentFaceNavigator> adjacentFaces() const;
 
-  //lazy iterators
-  std::array<Tet, 2> adjTets;
+  //Lazy iterators, will be populated (hopefully!) during tet mesh generation
+  std::vector<Tet> adjTets;
   
 };
 // using DynamicFace = DynamicElement<Face>;
@@ -328,7 +328,7 @@ public:
   bool isDead() const;
 
   // Properties
-  bool isTet() const;
+  bool isTet() const; // not handling polyhedras at the moment, so..
   size_t degree() const;
 
   // Iterators
@@ -608,7 +608,8 @@ template<> inline size_t nElements<volume::Face         >(volume::SurfaceMesh* m
 template<> inline size_t nElements<volume::Edge         >(volume::SurfaceMesh* mesh); 
 template<> inline size_t nElements<volume::Halfedge     >(volume::SurfaceMesh* mesh); 
 template<> inline size_t nElements<volume::Corner       >(volume::SurfaceMesh* mesh); 
-template<> inline size_t nElements<volume::BoundaryLoop >(volume::SurfaceMesh* mesh); 
+template<> inline size_t nElements<volume::BoundaryLoop >(volume::SurfaceMesh* mesh);  
+template<> inline size_t nElements<volume::Tet          >(volume::TetMesh*     mesh);
 
 template<> inline size_t elementCapacity<volume::Vertex      >(volume::SurfaceMesh* mesh);
 template<> inline size_t elementCapacity<volume::Face        >(volume::SurfaceMesh* mesh);
@@ -616,6 +617,7 @@ template<> inline size_t elementCapacity<volume::Edge        >(volume::SurfaceMe
 template<> inline size_t elementCapacity<volume::Halfedge    >(volume::SurfaceMesh* mesh);
 template<> inline size_t elementCapacity<volume::Corner      >(volume::SurfaceMesh* mesh);
 template<> inline size_t elementCapacity<volume::BoundaryLoop>(volume::SurfaceMesh* mesh);
+template<> inline size_t elementCapacity<volume::Tet         >(volume::TetMesh*     mesh);
 
 template<> inline size_t dataIndexOfElement<volume::Vertex          >(volume::SurfaceMesh* mesh, volume::Vertex e           );
 template<> inline size_t dataIndexOfElement<volume::Face            >(volume::SurfaceMesh* mesh, volume::Face e             );
@@ -623,6 +625,7 @@ template<> inline size_t dataIndexOfElement<volume::Edge            >(volume::Su
 template<> inline size_t dataIndexOfElement<volume::Halfedge        >(volume::SurfaceMesh* mesh, volume::Halfedge e         );
 template<> inline size_t dataIndexOfElement<volume::Corner          >(volume::SurfaceMesh* mesh, volume::Corner e           );
 template<> inline size_t dataIndexOfElement<volume::BoundaryLoop    >(volume::SurfaceMesh* mesh, volume::BoundaryLoop e     );
+template<> inline size_t dataIndexOfElement<volume::Tet             >(volume::TetMesh*     mesh, volume::Tet e              );
 
 template<> struct ElementSetType<volume::Vertex        >   { typedef volume::VertexSet       type; };
 template<> struct ElementSetType<volume::Face          >   { typedef volume::FaceSet         type; };
@@ -630,6 +633,7 @@ template<> struct ElementSetType<volume::Edge          >   { typedef volume::Edg
 template<> struct ElementSetType<volume::Halfedge      >   { typedef volume::HalfedgeSet     type; };
 template<> struct ElementSetType<volume::Corner        >   { typedef volume::CornerSet       type; };
 template<> struct ElementSetType<volume::BoundaryLoop  >   { typedef volume::BoundaryLoopSet type; };
+template<> struct ElementSetType<volume::Tet           >   { typedef volume::Tet             type; };
 
 template<> inline volume::VertexSet         iterateElements<volume::Vertex      >(volume::SurfaceMesh* mesh);
 template<> inline volume::HalfedgeSet       iterateElements<volume::Halfedge    >(volume::SurfaceMesh* mesh);
@@ -637,6 +641,7 @@ template<> inline volume::CornerSet         iterateElements<volume::Corner      
 template<> inline volume::EdgeSet           iterateElements<volume::Edge        >(volume::SurfaceMesh* mesh);
 template<> inline volume::FaceSet           iterateElements<volume::Face        >(volume::SurfaceMesh* mesh);
 template<> inline volume::BoundaryLoopSet   iterateElements<volume::BoundaryLoop>(volume::SurfaceMesh* mesh);
+template<> inline volume::TetSet            iterateElements<volume::Tet         >(volume::TetMesh*     mesh);
 
 template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<volume::Vertex      >(volume::SurfaceMesh* mesh);
 template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<volume::Halfedge    >(volume::SurfaceMesh* mesh);
@@ -644,6 +649,7 @@ template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<
 template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<volume::Edge        >(volume::SurfaceMesh* mesh);
 template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<volume::Face        >(volume::SurfaceMesh* mesh);
 template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<volume::BoundaryLoop>(volume::SurfaceMesh* mesh);
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<volume::Tet         >(volume::TetMesh*     mesh);
 
 template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<volume::Vertex       >(volume::SurfaceMesh* mesh);
 template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<volume::Halfedge     >(volume::SurfaceMesh* mesh);
@@ -651,6 +657,7 @@ template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& ge
 template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<volume::Edge         >(volume::SurfaceMesh* mesh);
 template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<volume::Face         >(volume::SurfaceMesh* mesh);
 template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<volume::BoundaryLoop >(volume::SurfaceMesh* mesh);
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<volume::Tet          >(volume::TetMesh*     mesh);
 
 template<> inline std::string typeShortName<volume::Vertex       >();
 template<> inline std::string typeShortName<volume::Halfedge     >();
@@ -658,6 +665,8 @@ template<> inline std::string typeShortName<volume::Corner       >();
 template<> inline std::string typeShortName<volume::Edge         >();
 template<> inline std::string typeShortName<volume::Face         >();
 template<> inline std::string typeShortName<volume::BoundaryLoop >();
+template<> inline std::string typeShortName<volume::Tet          >();
+
 
 // clang-format on
 
