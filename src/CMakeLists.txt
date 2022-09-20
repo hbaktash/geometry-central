@@ -11,12 +11,16 @@ SET(SRCS
   volume/base_geometry_interface.cpp
   volume/embedded_geometry_interface.cpp
   volume/extrinsic_geometry_interface.cpp
+  volume/intrinsic_geometry_interface.cpp
   volume/halfedge_factories.cpp
   volume/meshio.cpp
   volume/vertex_position_geometry.cpp
   volume/simple_polygon_mesh.cpp
+  volume/surface_mesh_factories.cpp
+  volume/manifold_surface_mesh.cpp
   volume/surface_mesh.cpp
-
+  volume/tet_mesh.cpp
+  
   surface/surface_mesh.cpp
   surface/manifold_surface_mesh.cpp
   surface/halfedge_factories.cpp  
@@ -154,8 +158,11 @@ SET(HEADERS
   ${INCLUDE_ROOT}/volume/extrinsic_geometry_interface.h
   ${INCLUDE_ROOT}/volume/halfedge_element_types.h
   ${INCLUDE_ROOT}/volume/halfedge_element_types.ipp
+  ${INCLUDE_ROOT}/volume/tet_element_types.h
+  ${INCLUDE_ROOT}/volume/tet_element_types.ipp
   ${INCLUDE_ROOT}/volume/halfedge_factories.h
   ${INCLUDE_ROOT}/volume/halfedge_logic_templates.ipp
+  ${INCLUDE_ROOT}/volume/tet_element_logic_templates.ipp
   ${INCLUDE_ROOT}/volume/intrinsic_geometry_interface.h
   ${INCLUDE_ROOT}/volume/manifold_surface_mesh.h
   ${INCLUDE_ROOT}/volume/manifold_surface_mesh.ipp
@@ -166,6 +173,8 @@ SET(HEADERS
   ${INCLUDE_ROOT}/volume/surface_mesh_factories.ipp
   ${INCLUDE_ROOT}/volume/surface_mesh.h
   ${INCLUDE_ROOT}/volume/surface_mesh.ipp
+  ${INCLUDE_ROOT}/volume/tet_mesh.h
+  ${INCLUDE_ROOT}/volume/tet_mesh.ipp
   ${INCLUDE_ROOT}/volume/vertex_position_geometry.h
   ${INCLUDE_ROOT}/volume/vertex_position_geometry.ipp
 
