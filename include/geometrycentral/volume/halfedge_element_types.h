@@ -93,9 +93,6 @@ public:
   NavigationSetBase<VertexAdjacentEdgeNavigator> adjacentEdges() const;
   NavigationSetBase<VertexAdjacentFaceNavigator> adjacentFaces() const;
   
-  
-  //lazy iterators
-  std::vector<Tet> adjTets;
 };
 
 // using DynamicVertex = DynamicElement<Vertex>;
@@ -243,7 +240,6 @@ public:
   std::array<Vertex, 2> adjacentVertices() const;
   
   //lazy iterators
-  std::vector<Tet> adjTets;
 };
 
 // using DynamicEdge = DynamicElement<Edge>;
@@ -290,9 +286,6 @@ public:
   NavigationSetBase<FaceAdjacentCornerNavigator> adjacentCorners() const;
   NavigationSetBase<FaceAdjacentEdgeNavigator> adjacentEdges() const;
   NavigationSetBase<FaceAdjacentFaceNavigator> adjacentFaces() const;
-
-  //Lazy iterators, will be populated (hopefully!) during tet mesh generation
-  std::vector<Tet> adjTets;
   
 };
 // using DynamicFace = DynamicElement<Face>;
@@ -315,15 +308,16 @@ public:
   // Constructors
   Tet();                              // construct an empty (null) element
   Tet(TetMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
-  Tet(TetMesh* mesh, size_t ind, std::vector<Vertex> vertices); // there is no cool halfEdge indicators for tets, so..
+  Tet(TetMesh* mesh, size_t ind, std::vector<size_t> vertices_); // there is no cool halfEdge indicators for tets, so..
 
   // Lazy iterators; probably should be protected (use getter/setter)
-  std::vector<Vertex> adjVertices;
-  std::vector<Edge> adjEdges;
-  std::vector<Face> adjFaces;
+  std::vector<Vertex> adjVertices();
+  std::vector<Edge> adjEdges();
+  std::vector<Face> adjFaces();
 
-  void buildAdjEdges(); // should only work if adjVertices is populated
-  void buildAdjFaces(); // ..same..
+  void buildAdjVertices(std::vector<size_t> vertices); // populates stuff in mesh.tAdjVs
+  void buildAdjEdges(); // populates stuff in mesh.tAdjEs
+  void buildAdjFaces(); // populates stuff in mesh.tAdjFs
   
   bool isDead() const;
 

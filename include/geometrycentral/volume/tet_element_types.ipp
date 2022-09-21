@@ -17,34 +17,49 @@ namespace volume {
 // Constructors
 inline Tet::Tet() {}
 inline Tet::Tet(TetMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline Tet::Tet(TetMesh* mesh_, size_t ind_, std::vector<Vertex> vertices_) : Element(mesh_,ind_), adjVertices(vertices_) {} // there is no cool halfEdge indicators for tets, so..
+inline Tet::Tet(TetMesh* mesh_, size_t ind_, std::vector<size_t> vertices_) : Element(mesh_,ind_) {
+
+}
+
+inline void Tet::buildAdjVertices(std::vector<size_t> vertices){
+  std::vector<size_t> adjVs;
+  adjVs.reserve(4);
+  for(size_t v_ind: vertices){
+    adjVs.push_back(v_ind);
+  }
+  mesh->tAdjVs[getIndex()] = adjVs;
+}
 
 inline void Tet::buildAdjEdges(){
-  if(adjVertices.size() == 0) throw std::logic_error("vertices should have been initialized first. (size=0)"); //logic?
-  adjEdges.reserve((size_t)6); // general case? in which this function won't exist like this
-  for(Vertex v1: adjVertices){
-    for(Vertex v2: adjVertices){
-      if(v1 != v2) adjEdges.push_back(mesh->connectingEdge(v1, v2));
+  std::vector<Vertex> adjVs = adjVertices();
+  std::vector<size_t> adjEs;
+  adjEs.reserve(6);
+  if(adjVs.size() == 0) throw std::logic_error("vertices should have been initialized first. (size=0)"); //logic?
+  adjEs.reserve(6);
+  for(Vertex v1: adjVs){
+    for(Vertex v2: adjVs){
+      if(v1 != v2) adjEs.push_back(mesh->connectingEdge(v1, v2).getIndex());
     }
   }
+  mesh->tAdjEs[getIndex()] = adjEs;
 }
 
 inline void Tet::buildAdjFaces(){
-  if(adjVertices.size() == 0) throw std::logic_error("vertices should have been initialized first. (size=0)"); //logic?
-  adjFaces.reserve(4); // general case? in which this function won't exist like this
-  for(Vertex v1: adjVertices){
+  std::vector<Vertex> adjVs = adjVertices();
+  std::vector<size_t> adjFs;
+  if(adjVs.size() == 0) throw std::logic_error("vertices should have been initialized first. (size=0)"); //logic?
+  adjFs.reserve(4); // general case? in which this function won't exist like this
+  for(Vertex v1: adjVs){
     // TODO: should encapsulate these set operations in utils 
     std::vector<Vertex> triplet; // instead, we should have some set operations added to utils. 
     std::vector<Vertex> boring_solo_set{v1};
     triplet.reserve(3);
-    std::set_difference(adjVertices.begin(), adjVertices.end(),  // fancy diff
+    std::set_difference(adjVs.begin(), adjVs.end(),  // fancy diff
                         boring_solo_set.begin(), boring_solo_set.end(),
                         std::inserter(triplet, triplet.begin()));
-    // for(Vertex v2: adjVertices){ // not very fancy diff
-    //   if(v1 != v2) triplet.push_back(v2);
-    // }
-    adjFaces.push_back(mesh->get_connecting_face(triplet[0], triplet[1], triplet[2]));
+    adjFs.push_back(mesh->get_connecting_face(triplet[0], triplet[1], triplet[2]).getIndex());
   }
+  mesh->tAdjFs[getIndex()] = adjFs;
 }
   
 inline bool Tet::isDead() const {

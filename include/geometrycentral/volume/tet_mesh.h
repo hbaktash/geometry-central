@@ -42,6 +42,13 @@ public:
     std::vector<std::vector<size_t>> tet_v_inds;
     std::vector<Tet> tet_objects;
 
+    // to be annihilated later
+    std::vector<std::vector<size_t>> vAdjTs;
+    std::vector<std::vector<size_t>> eAdjTs;
+    std::vector<std::vector<size_t>> fAdjTs;
+    std::vector<std::vector<size_t>> tAdjVs;
+    std::vector<std::vector<size_t>> tAdjEs;
+    std::vector<std::vector<size_t>> tAdjFs;
 
     TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_)
             :TetMesh(tet_v_inds_, triangles_from_tets(tet_v_inds)){}

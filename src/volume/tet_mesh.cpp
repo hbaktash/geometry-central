@@ -71,7 +71,7 @@ void SimpleTetMesh::mergeIdenticalFaces(){
 
 TetMesh::TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_,
                  const std::vector<std::vector<size_t>>& triangles_)
-      :SurfaceMesh(triangles_) {
+      :SurfaceMesh(triangles_), tet_v_inds(tet_v_inds_) {
   // The nonmanifold surface skeleton is already constructed.
   // Faces, vertices, halfedges and edges are initiated.
   size_t n_tets = tet_v_inds_.size();
@@ -79,6 +79,15 @@ TetMesh::TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_,
   nTetsCapacityCount = nTetsCount;
   
   tet_objects.reserve(n_tets);
+  
+  tAdjVs = std::vector<std::vector<size_t>>(n_tets, {INVALID_IND});
+  tAdjEs = std::vector<std::vector<size_t>>(n_tets, {INVALID_IND});
+  tAdjFs = std::vector<std::vector<size_t>>(n_tets, {INVALID_IND});
+  
+  vAdjTs = std::vector<std::vector<size_t>>(nVertices(), {INVALID_IND});
+  eAdjTs = std::vector<std::vector<size_t>>(nEdges(), {INVALID_IND});
+  fAdjTs = std::vector<std::vector<size_t>>(nFaces(), {INVALID_IND});
+
   size_t tet_ind = 0;
   for(std::vector<size_t> tet_v_inds: tet_v_inds_){
     Tet new_tet(this, tet_ind++,
@@ -109,8 +118,10 @@ TetMesh::TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_,
         if(v_ind != other_v_ind){
           Edge tmp_e = connectingEdge(vertex(v_ind), vertex(other_v_ind));
           if(std::find(tmp_e.adjTets.begin(), tmp_e.adjTets.end(), new_tet) == tmp_e.adjTets.end()){ // so it does not already exist
+            std::cout<<"adding tet "<<new_tet<<" for edge "<<tmp_e<<"\n";
             tmp_e.adjTets.push_back(new_tet);
           }
+          std::cout<<" ** adj tets cnt "<<tmp_e.adjTets.size()<<"\n";
         }
       }
     }
