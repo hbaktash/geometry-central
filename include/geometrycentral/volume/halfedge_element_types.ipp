@@ -123,6 +123,23 @@ inline NavigationSetBase<VertexAdjacentEdgeNavigator> Vertex::adjacentEdges() co
 inline NavigationSetBase<VertexAdjacentCornerNavigator> Vertex::adjacentCorners() const {
   return NavigationSetBase<VertexAdjacentCornerNavigator>(halfedge());
 }
+ 
+//lazy iterators
+inline std::vector<Tet> Vertex::adjacentTets() const {
+  std::unordered_set<Tet> adjTset;
+  for(Face f: adjacentFaces()){
+    for(Tet t: f.adjacentTets()){
+      adjTset.insert(t);
+    }
+  }
+  std::vector<Tet> adjTs;
+  adjTs.reserve(adjTset.size());
+  for(Tet t: adjTset){
+    adjTs.push_back(t);
+  }
+  adjTs.insert(adjTs.end(), adjTset.begin(), adjTset.end());
+  return adjTs;
+}
 
 // == Range iterators
 inline bool VertexRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
@@ -468,6 +485,15 @@ inline bool FaceAdjacentFaceNavigator::isValid() const { return currE.first != c
 inline Face FaceAdjacentFaceNavigator::getCurrent() const { return currE.second.face(); }
 
 
+//lazy iterators
+inline std::vector<Tet> Face::adjacentTets() const{
+  TetMesh* tet_mesh = (TetMesh*)mesh;
+  std::vector<size_t> adjTInds = tet_mesh->fAdjTs[getIndex()];
+  std::vector<Tet> adjTs;
+  adjTs.reserve(adjTInds.size());
+  for(size_t t_ind: adjTInds) adjTs.push_back(Tet(tet_mesh, t_ind));
+  return adjTs;
+}
 
 // ==========================================================
 // ================     Boundary Loop      ==================

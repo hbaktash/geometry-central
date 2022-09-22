@@ -92,7 +92,10 @@ public:
   NavigationSetBase<VertexAdjacentCornerNavigator> adjacentCorners() const;
   NavigationSetBase<VertexAdjacentEdgeNavigator> adjacentEdges() const;
   NavigationSetBase<VertexAdjacentFaceNavigator> adjacentFaces() const;
-  
+
+   
+  //lazy iterators
+  std::vector<Tet> adjacentTets() const;
 };
 
 // using DynamicVertex = DynamicElement<Vertex>;
@@ -236,10 +239,10 @@ public:
   NavigationSetBase<EdgeAdjacentHalfedgeNavigator> adjacentHalfedges() const;
   NavigationSetBase<EdgeAdjacentInteriorHalfedgeNavigator> adjacentInteriorHalfedges() const;
   NavigationSetBase<EdgeAdjacentFaceNavigator> adjacentFaces() const;
-  
   std::array<Vertex, 2> adjacentVertices() const;
   
   //lazy iterators
+  std::vector<Tet> adjacentTets() const;
 };
 
 // using DynamicEdge = DynamicElement<Edge>;
@@ -287,6 +290,8 @@ public:
   NavigationSetBase<FaceAdjacentEdgeNavigator> adjacentEdges() const;
   NavigationSetBase<FaceAdjacentFaceNavigator> adjacentFaces() const;
   
+  //lazy iterators
+  std::vector<Tet> adjacentTets() const;
 };
 // using DynamicFace = DynamicElement<Face>;
 
@@ -308,7 +313,6 @@ public:
   // Constructors
   Tet();                              // construct an empty (null) element
   Tet(TetMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
-  Tet(TetMesh* mesh, size_t ind, std::vector<size_t> vertices_); // there is no cool halfEdge indicators for tets, so..
 
   // Lazy iterators; probably should be protected (use getter/setter)
   std::vector<Vertex> adjVertices();
@@ -316,8 +320,8 @@ public:
   std::vector<Face> adjFaces();
 
   void buildAdjVertices(std::vector<size_t> vertices); // populates stuff in mesh.tAdjVs
-  void buildAdjEdges(); // populates stuff in mesh.tAdjEs
-  void buildAdjFaces(); // populates stuff in mesh.tAdjFs
+  // void buildAdjEdges(); // populates stuff in mesh.tAdjEs
+  // void buildAdjFaces(); // populates stuff in mesh.tAdjFs
   
   bool isDead() const;
 

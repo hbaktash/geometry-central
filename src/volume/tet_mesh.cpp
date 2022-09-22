@@ -81,52 +81,32 @@ TetMesh::TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_,
   tet_objects.reserve(n_tets);
   
   tAdjVs = std::vector<std::vector<size_t>>(n_tets, {INVALID_IND});
-  tAdjEs = std::vector<std::vector<size_t>>(n_tets, {INVALID_IND});
-  tAdjFs = std::vector<std::vector<size_t>>(n_tets, {INVALID_IND});
-  
-  vAdjTs = std::vector<std::vector<size_t>>(nVertices(), {INVALID_IND});
-  eAdjTs = std::vector<std::vector<size_t>>(nEdges(), {INVALID_IND});
   fAdjTs = std::vector<std::vector<size_t>>(nFaces(), {INVALID_IND});
 
   size_t tet_ind = 0;
   for(std::vector<size_t> tet_v_inds: tet_v_inds_){
-    Tet new_tet(this, tet_ind++,
-                {vertex(tet_v_inds[0]), vertex(tet_v_inds[1]), vertex(tet_v_inds[2]), vertex(tet_v_inds[3])});
+    
+    Tet new_tet(this, tet_ind);
     //populating the lazy/dirty iterators on Tets
-    new_tet.buildAdjEdges();
-    new_tet.buildAdjFaces();
-
-    // populating the lazy/dirty to-Tet iterators on V/E/F's
+    new_tet.buildAdjVertices(tet_v_inds);
+    // populating the lazy/dirty to-Tet iterators on Faces
     for(size_t v_ind:tet_v_inds){
-      // --Vertices
-      Vertex tmp_v = vertex(v_ind);
-      tmp_v.adjTets.push_back(new_tet);
-
       // --Faces
-      // TODO: should encapsulate these set operations in utils :'(
-      std::vector<Vertex> triplet; // instead, we should have some set operations added to utils.
-      std::vector<Vertex> boring_solo_set{tmp_v};
+
+      // TODO: should encapsulate these set operations in utils. ASAP
+      std::vector<size_t> triplet; // instead, we should have some set operations added to utils.
+      std::vector<size_t> boring_solo_set{v_ind};
       triplet.reserve(3);
-      std::set_difference(new_tet.adjVertices.begin(), new_tet.adjVertices.end(),  // fancy diff
+      std::set_difference(tet_v_inds.begin(), tet_v_inds.end(),  // fancy diff
                           boring_solo_set.begin(), boring_solo_set.end(),
                           std::inserter(triplet, triplet.begin()));
-      Face tmp_f = get_connecting_face(triplet[0], triplet[1], triplet[2]);
-      tmp_f.adjTets.push_back(new_tet);
+      Face tmp_f = get_connecting_face(Vertex(this, triplet[0]), Vertex(this,triplet[1]), Vertex(this,triplet[2]));
 
-      // --Edges
-      for(size_t other_v_ind: tet_v_inds){
-        if(v_ind != other_v_ind){
-          Edge tmp_e = connectingEdge(vertex(v_ind), vertex(other_v_ind));
-          if(std::find(tmp_e.adjTets.begin(), tmp_e.adjTets.end(), new_tet) == tmp_e.adjTets.end()){ // so it does not already exist
-            std::cout<<"adding tet "<<new_tet<<" for edge "<<tmp_e<<"\n";
-            tmp_e.adjTets.push_back(new_tet);
-          }
-          std::cout<<" ** adj tets cnt "<<tmp_e.adjTets.size()<<"\n";
-        }
-      }
+      fAdjTs[tmp_f.getIndex()].push_back(tet_ind);
     }
     // Tet object is ready to be pushed in. Was actually ready even before handling the elem.adjT iterators; anyway..
     tet_objects.push_back(new_tet);
+    tet_ind++;
   }
 }
 
