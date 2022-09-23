@@ -10,6 +10,52 @@ template <> struct hash<geometrycentral::volume::Tet>            { std::size_t o
 namespace geometrycentral {
 namespace volume {
 
+
+// ======== left over from surface elements ===========
+//lazy iterators
+inline std::vector<Tet> Face::adjacentTets() const{
+  TetMesh* tet_mesh = (TetMesh*)mesh;
+  std::vector<size_t> adjTInds = tet_mesh->fAdjTs[getIndex()];
+  std::vector<Tet> adjTs;
+  adjTs.reserve(adjTInds.size());
+  for(size_t t_ind: adjTInds) adjTs.push_back(Tet(tet_mesh, t_ind));
+  return adjTs;
+}
+
+//lazy Tet iterator for Vertex
+inline std::vector<Tet> Vertex::adjacentTets() const {
+  std::unordered_set<Tet> adjTset;
+  for(Face f: adjacentFaces()){
+    for(Tet t: f.adjacentTets()){
+      adjTset.insert(t);
+    }
+  }
+  std::vector<Tet> adjTs;
+  // adjTs.reserve(adjTset.size());
+  // for(Tet t: adjTset){
+  //   adjTs.push_back(t);
+  // }
+  adjTs.insert(adjTs.end(), adjTset.begin(), adjTset.end());
+  return adjTs;
+}
+
+//lazy Tet iterators for Edge 
+inline std::vector<Tet> Edge::adjacentTets() const{
+  std::unordered_set<Tet> adjTset;
+  for(Face f: adjacentFaces()){
+    for(Tet t: f.adjacentTets()){
+      adjTset.insert(t);
+    }
+  }
+  std::vector<Tet> adjTs;
+  // adjTs.reserve(adjTset.size());
+  // for(Tet t: adjTset){
+  //   adjTs.push_back(t);
+  // }
+  adjTs.insert(adjTs.end(), adjTset.begin(), adjTset.end());
+  return adjTs;
+}
+
 // ==========================================================
 // ================          Tet          ==================
 // ==========================================================
@@ -27,12 +73,12 @@ inline void Tet::buildAdjVertices(std::vector<size_t> vertices){
   mesh->tAdjVs[getIndex()] = adjVs;
 }
 
-std::vector<Vertex> Tet::adjVertices(){
+inline std::vector<Vertex> Tet::adjVertices(){
   std::vector<size_t> adjVs = mesh->tAdjVs[getIndex()];
-  return std::vector<Vertex>{Vertex(adjVs[0]), Vertex(adjVs[1]), Vertex(adjVs[2]), Vertex(adjVs[3])};
+  return std::vector<Vertex>{Vertex(mesh, adjVs[0]), Vertex(mesh, adjVs[1]), Vertex(mesh, adjVs[2]), Vertex(mesh, adjVs[3])};
 }
 
-std::vector<Edge> Tet::adjEdges(){
+inline std::vector<Edge> Tet::adjEdges(){
   std::vector<Vertex> adjVs = adjVertices();
   std::vector<Edge> adjEs;
   adjEs.reserve(6);
@@ -47,7 +93,7 @@ std::vector<Edge> Tet::adjEdges(){
   return adjEs;
 }
 
-std::vector<Face> Tet::adjFaces(){
+inline std::vector<Face> Tet::adjFaces(){
   std::vector<Vertex> adjVs = adjVertices();
   std::vector<Face> adjFs;
   adjFs.reserve(4);
@@ -63,37 +109,6 @@ std::vector<Face> Tet::adjFaces(){
   }
   return adjFs;
 }
-// inline void Tet::buildAdjEdges(){
-//   std::vector<Vertex> adjVs = adjVertices();
-//   std::vector<size_t> adjEs;
-//   adjEs.reserve(6);
-//   if(adjVs.size() == 0) throw std::logic_error("vertices should have been initialized first. (size=0)"); //logic?
-//   adjEs.reserve(6);
-//   for(Vertex v1: adjVs){
-//     for(Vertex v2: adjVs){
-//       if(v1 != v2) adjEs.push_back(mesh->connectingEdge(v1, v2).getIndex());
-//     }
-//   }
-//   mesh->tAdjEs[getIndex()] = adjEs;
-// }
-
-// inline void Tet::buildAdjFaces(){
-//   std::vector<Vertex> adjVs = adjVertices();
-//   std::vector<size_t> adjFs;
-//   if(adjVs.size() == 0) throw std::logic_error("vertices should have been initialized first. (size=0)"); //logic?
-//   adjFs.reserve(4); // general case? in which this function won't exist like this
-//   for(Vertex v1: adjVs){
-//     // TODO: should encapsulate these set operations in utils 
-//     std::vector<Vertex> triplet; // instead, we should have some set operations added to utils. 
-//     std::vector<Vertex> boring_solo_set{v1};
-//     triplet.reserve(3);
-//     std::set_difference(adjVs.begin(), adjVs.end(),  // fancy diff
-//                         boring_solo_set.begin(), boring_solo_set.end(),
-//                         std::inserter(triplet, triplet.begin()));
-//     adjFs.push_back(mesh->get_connecting_face(triplet[0], triplet[1], triplet[2]).getIndex());
-//   }
-//   mesh->tAdjFs[getIndex()] = adjFs;
-// }
   
 inline bool Tet::isDead() const {
   return mesh->tAdjVs[getIndex()].size() < 4; // hmm, not really sure for now.
