@@ -74,25 +74,27 @@ TetMesh::TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_,
       :SurfaceMesh(triangles_), tet_v_inds(tet_v_inds_) {
   // The nonmanifold surface skeleton is already constructed.
   // Faces, vertices, halfedges and edges are initiated.
-  size_t n_tets = tet_v_inds_.size();
-  nTetsCount = n_tets;
+  nTetsCount = tet_v_inds_.size();
   nTetsCapacityCount = nTetsCount;
+  nTetsFillCount = nTetsCount;
   
-  tet_objects.reserve(n_tets);
+  tet_objects.reserve(nTetsCount);
   
-  tAdjVs = std::vector<std::vector<size_t>>(n_tets, {INVALID_IND});
-  fAdjTs = std::vector<std::vector<size_t>>(nFaces(), {INVALID_IND});
+  // tAdjVs = std::vector<std::vector<size_t>>(n_tets, {INVALID_IND});
+  // fAdjTs = std::vector<std::vector<size_t>>(nFaces(), {INVALID_IND});
+  tAdjVs.resize(nTetsCapacityCount);
+  fAdjTs.resize(nFaces());
 
   size_t tet_ind = 0;
   for(std::vector<size_t> tet_v_inds: tet_v_inds_){
     
     Tet new_tet(this, tet_ind);
-    //populating the lazy/dirty iterators on Tets
+    
+    //populating the index-based iterators on Tets
     new_tet.buildAdjVertices(tet_v_inds);
-    // populating the lazy/dirty to-Tet iterators on Faces
+    
+    // populating the lazy/dirty to-Tet iterators on Faces. Vertices/Edges will use these later.
     for(size_t v_ind:tet_v_inds){
-      // --Faces
-
       // TODO: should encapsulate these set operations in utils. ASAP
       std::vector<size_t> triplet; // instead, we should have some set operations added to utils.
       std::vector<size_t> boring_solo_set{v_ind};
@@ -129,8 +131,8 @@ Tet TetMesh::get_connecting_tet(Vertex v1, Vertex v2, Vertex v3, Vertex v4){
   Face f1 = get_connecting_face(v1, v2, v3);
   Face f2 = get_connecting_face(v1, v2, v4);
 
-  for(Tet t1: f1.adjTets){
-    for(Tet t2: f2.adjTets){
+  for(Tet t1: f1.adjacentTets()){
+    for(Tet t2: f2.adjacentTets()){
       if(t1 == t2){
         return t1;
       }
@@ -164,6 +166,123 @@ std::vector<std::vector<size_t>> triangles_from_tets(std::vector<std::vector<siz
     return compressed_triangles;
 }
 
+// mesh resize routines
+Tet TetMesh::getNewTet(){
+  if (nTetsFillCount < nTetsCapacityCount) {
+    // No work needed
+  }
+  // The intesting case, where vectors resize
+  else {
+    size_t newCapacity = nTetsCapacityCount * 2;
+
+    // Resize internal arrays
+    tAdjVs.resize(newCapacity);
+
+    nTetsCapacityCount = newCapacity;
+
+
+    // Invoke relevant callback functions
+    for (auto& f : tetExpandCallbackList) {
+      f(newCapacity);
+    }
+  }
+
+  nTetsFillCount++;
+  nTetsCount++;
+
+  modificationTick++;
+  isCompressedFlag = false;
+  return Tet(this, nTetsFillCount - 1);
+}
+
+// mutation routines
+Vertex TetMesh::splitTet(Tet tIn){
+  
+  // Create the new center vertex
+  Vertex centerVert = getNewVertex();
+
+  // Count degree to allocate elements
+  size_t volDegree = tIn.degree();
+
+  // == Create new halfedges/edges/faces around the center vertex
+
+  // Create all of the new elements first, then hook them up below
+  std::vector<Tet> innerTets;
+  std::vector<Face> innerFaces;
+  std::vector<Halfedge> leadingHalfedges(volDegree); // the one that points towards the center
+  std::vector<Halfedge> trailingHalfedges(volDegree);
+  std::vector<Edge> innerEdges(volDegree); // aligned with leading he
+  for (size_t i = 0; i < volDegree; i++) {
+    // Re-use first face
+    if (i == 0) {
+      // innerFaces.push_back(fIn);
+      innerTets.push_back(tIn);
+    } else {
+      innerTets.push_back(getNewTet());
+    }
+
+    // Get the new edge group
+    Halfedge newHe = getNewEdgeTriple(false);
+
+    leadingHalfedges[i] = newHe;
+    trailingHalfedges[(i + 1) % volDegree] = newHe.twin(); // these inner edges only have 2 adj faces, so it makes sense. can always do sibling instead
+    innerEdges[i] = newHe.edge();
+
+    for (size_t j = 0; j < volDegree; j++) { // making a Face per each edge of the volume
+      if(j < i) innerFaces.push_back(getNewFace());
+    }  
+  }
+
+  // Form this list before we start, because we're about to start breaking pointers
+  std::vector<Face> boundaryFaces;
+  std::vector<std::vector<Halfedge>> boundaryFacesHalfedges;
+  for ( Face f: tIn.adjFaces()){
+    boundaryFaces.push_back(f);
+    std::vector<Halfedge> tmp_boundary_halfedges;
+    for (Halfedge he : f.adjacentHalfedges()) {
+      tmp_boundary_halfedges.push_back(he);
+    }
+    boundaryFacesHalfedges.push_back(tmp_boundary_halfedges);
+  }
+
+  // Connect up all the pointers
+  // Each iteration processes one inner face
+  // ** take one boundary face. build a pyramid on it. One He 3 faces will be untouched. 
+  for (size_t i = 0; i < volDegree; i++) {
+
+    // Gather pointers
+    Face f = innerFaces[i];
+    Edge e = innerEdges[i];
+    Edge prevE = innerEdges[(i + faceDegree - 1) % faceDegree];
+    Halfedge leadingHe = leadingHalfedges[i];
+    Halfedge trailingHe = trailingHalfedges[i];
+    Halfedge boundaryHe = faceBoundaryHalfedges[i];
+    Halfedge nextTrailingHe = trailingHalfedges[(i + 1) % faceDegree];
+    Halfedge prevLeadingHe = leadingHalfedges[(i + faceDegree - 1) % faceDegree];
+
+    // face
+    fHalfedgeArr[f.getIndex()] = boundaryHe.getIndex();
+
+    // leading halfedge
+    heNextArr[leadingHe.getIndex()] = trailingHe.getIndex();
+    heVertexArr[leadingHe.getIndex()] = boundaryHe.next().vertex().getIndex();
+    heFaceArr[leadingHe.getIndex()] = f.getIndex();
+
+    // trailing halfedge
+    heNextArr[trailingHe.getIndex()] = boundaryHe.getIndex();
+    heVertexArr[trailingHe.getIndex()] = centerVert.getIndex();
+    heFaceArr[trailingHe.getIndex()] = f.getIndex();
+
+    // boundary halfedge
+    heNextArr[boundaryHe.getIndex()] = leadingHe.getIndex();
+    heFaceArr[boundaryHe.getIndex()] = f.getIndex();
+  }
+
+  vHalfedgeArr[centerVert.getIndex()] = trailingHalfedges[0].getIndex();
+
+  modificationTick++;
+  return centerVert;
+}
 
 } // namespace volume
 } // namespace 
