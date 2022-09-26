@@ -724,7 +724,6 @@ void SurfaceMesh::addToVertexLists(Halfedge he) {
   { // incoming array
     // get any vertex in the current list to use as an insertion point
     size_t iV = he.tipVertex().getIndex();
-
     size_t iN = vHeInStartArr[iV];
     if (iN == INVALID_IND) {
       // this is the only element in the list (rare)
@@ -844,14 +843,12 @@ Face SurfaceMesh::duplicateFace(Face f) {
   return newFace;
 }
 
-Vertex SurfaceMesh::buildTetOnFace(Face fIn){
+Vertex SurfaceMesh::raiseVertexOnFace(Face fIn){
   // Create the new center vertex
   Vertex centerVert = getNewVertex();
 
   // Count degree to allocate elements
   size_t faceDegree = fIn.degree();
-
-  // == Create new halfedges/edges/faces around the center vertex
 
   // Create all of the new elements first, then hook them up below
   std::vector<Face> innerFaces;
@@ -859,6 +856,7 @@ Vertex SurfaceMesh::buildTetOnFace(Face fIn){
   std::vector<Halfedge> trailingHalfedges(faceDegree);
   std::vector<Edge> innerEdges(faceDegree); // aligned with leading he
   for (size_t i = 0; i < faceDegree; i++) {
+
     innerFaces.push_back(getNewFace()); // preserving fIn, unlike splitFace() in manifold_surface_mesh 
     // Get the new edge group
     Halfedge newHe = getNewEdgeTriple(false);
@@ -876,38 +874,8 @@ Vertex SurfaceMesh::buildTetOnFace(Face fIn){
 
   // Connect up all the pointers
   // Each iteration processes one inner face
-  
-  // ============================================
-  for (Halfedge oldHe : f.adjacentHalfedges()) {
-    Halfedge newHe = getNewHalfedge(false);
-    
-    //***********
-
-    // update the halfedge data
-    heVertexArr[newHe.getIndex()] = oldHe.vertex().getIndex();
-    heEdgeArr[newHe.getIndex()] = oldHe.edge().getIndex();
-    heOrientArr[newHe.getIndex()] = heOrientArr[oldHe.getIndex()];
-    heFaceArr[newHe.getIndex()] = newFace.getIndex();
-
-    // insert in to the sibling list
-    size_t sibP = oldHe.getIndex();
-    size_t sibN = heSiblingArr[sibP];
-    heSiblingArr[sibP] = newHe.getIndex();
-    heSiblingArr[newHe.getIndex()] = sibN;
-    prevNewHe = newHe;
-  }
-  heNextArr[prevNewHe.getIndex()] = firstNewHe.getIndex();
-
-  for (Halfedge he : newFace.adjacentHalfedges()) {
-    addToVertexLists(he);
-  }
-
-  // =======================================
-  bool first = true;
-  Halfedge firstNewHe, prevNewHe;
-  for (size_t i = 0; i < faceDegree; i++) {
-    // Gather pointers
-
+  for (size_t i = 0; i < faceDegree; i++) {  
+    // gather the elements
     Face f = innerFaces[i];
     Halfedge boundaryHe = faceBoundaryHalfedges[i];
     Edge e = innerEdges[i];
@@ -917,17 +885,15 @@ Vertex SurfaceMesh::buildTetOnFace(Face fIn){
     Halfedge nextTrailingHe = trailingHalfedges[(i + 1) % faceDegree];
     Halfedge prevLeadingHe = leadingHalfedges[(i + faceDegree - 1) % faceDegree];
 
-
     Halfedge tmp_he = getNewHalfedge(false); // to hook up the new faces with the input face
-    if (first) {
-      fHalfedgeArr[f.getIndex()] = tmp_he.getIndex();
-      firstNewHe = tmp_he;
-      first = false;
-    }
 
-    
+    // new halfedge properties     
+    heVertexArr[tmp_he.getIndex()] = boundaryHe.vertex().getIndex(); // i.e. tailvertex()
+    heEdgeArr[tmp_he.getIndex()] = boundaryHe.edge().getIndex();
+    heOrientArr[tmp_he.getIndex()] = heOrientArr[boundaryHe.getIndex()];
+
     // face
-    fHalfedgeArr[f.getIndex()] = boundaryHe.getIndex();
+    fHalfedgeArr[f.getIndex()] = tmp_he.getIndex();
 
     // leading halfedge
     heNextArr[leadingHe.getIndex()] = trailingHe.getIndex();
@@ -935,20 +901,53 @@ Vertex SurfaceMesh::buildTetOnFace(Face fIn){
     heFaceArr[leadingHe.getIndex()] = f.getIndex();
 
     // trailing halfedge
-    heNextArr[trailingHe.getIndex()] = boundaryHe.getIndex();
+    heNextArr[trailingHe.getIndex()] = tmp_he.getIndex();
     heVertexArr[trailingHe.getIndex()] = centerVert.getIndex();
     heFaceArr[trailingHe.getIndex()] = f.getIndex();
 
     // boundary halfedge
-    heNextArr[boundaryHe.getIndex()] = leadingHe.getIndex();
-    heFaceArr[boundaryHe.getIndex()] = f.getIndex();
+    heNextArr[tmp_he.getIndex()] = leadingHe.getIndex();
+    heFaceArr[tmp_he.getIndex()] = f.getIndex();
+    // boundary and tmp_he sibling 
+    size_t boundaryHeInd = boundaryHe.getIndex();
+    size_t prevSib = boundaryHe.sibling().getIndex();
+    heSiblingArr[boundaryHeInd] = tmp_he.getIndex(); // could go the other way; should not matter.
+    heSiblingArr[tmp_he.getIndex()] = prevSib;
+  
+    // Debug
+    // printf("for he %d:\n   v1 %d v2 %d\n   edge %d\n   boundaryHe v1 %d v2 %d\n", tmp_he.getIndex(), tmp_he.tailVertex().getIndex(), tmp_he.tipVertex().getIndex(), 
+    //                                                   tmp_he.edge().getIndex(),
+    //                                                   boundaryHe.tailVertex().getIndex(), boundaryHe.tipVertex().getIndex());
   }
-
   vHalfedgeArr[centerVert.getIndex()] = trailingHalfedges[0].getIndex();
+  
+  initializeHalfedgeNeighbors();
+  // for (Face f: innerFaces){
+  //   for (Halfedge he : f.adjacentHalfedges()) {
+  //     printf("going over he %d: v1 %d v2 %d \n", he.getIndex(), he.tailVertex().getIndex(), he.tipVertex().getIndex());
+  //     addToVertexLists(he);  // this facilitates  v.adjHalfEdges() 
+  //   }
+  // }
+
+  // printf("### checking how the new vertex is doing:\n");
+  // std::cout<<"adj vertices\n";
+  // for(Vertex v: centerVert.adjacentVertices()){
+  //   std::cout<<" "<< v;
+  // }
+  // std::cout<<"\nadj edges:\n";
+  // for(Halfedge he: centerVert.outgoingHalfedges()){
+  //   std::cout<< " he: "<< he.getIndex()<< "  tipV: "<< he.tipVertex();
+  // }
+  // std::cout<<"\nadj faces:\n";
+  // for(Face f: centerVert.adjacentFaces()){
+  //   std::cout<< " f: "<< f.getIndex();
+  // }
+  // std::cout<<"\n";
 
   modificationTick++;
   return centerVert;
 }
+
 
 bool SurfaceMesh::flip(Edge eFlip, bool preventSelfEdges) {
   if (eFlip.isBoundary()) return false;

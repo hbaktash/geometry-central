@@ -151,6 +151,11 @@ public:
   // mesh nonmanifold, and thus is only permitted on general surfaces meshes.
   Face duplicateFace(Face f);
 
+  // added for tet mesh
+  // Given a face, insert a vertex on top of it; without removing the face itself. 
+  // (almost like splitFace in manifold_surface_mesh).
+  Vertex raiseVertexOnFace(Face f);
+
   // Flip an edge. Edge is rotated clockwise. Return true if the edge was actually flipped (one can only flip
   // manifold, interior, triangular edges which are not incident on degree-1 vertices). Does _not_ create any new
   // elements, or cause the mesh to become decompressed.

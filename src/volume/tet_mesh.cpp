@@ -71,7 +71,7 @@ void SimpleTetMesh::mergeIdenticalFaces(){
 
 TetMesh::TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_,
                  const std::vector<std::vector<size_t>>& triangles_)
-      :SurfaceMesh(triangles_), tet_v_inds(tet_v_inds_) {
+      :SurfaceMesh(triangles_) {
   // The nonmanifold surface skeleton is already constructed.
   // Faces, vertices, halfedges and edges are initiated.
   nTetsCount = tet_v_inds_.size();
@@ -115,7 +115,6 @@ TetMesh::TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_,
 Face TetMesh::get_connecting_face(Vertex v1, Vertex v2, Vertex v3){
   Edge e1 = connectingEdge(v1, v2);
   Edge e2 = connectingEdge(v1, v3);
-  
   for(Face f1: e1.adjacentFaces()){
     for(Face f2: e2.adjacentFaces()){
       if(f1 == f2){
@@ -195,93 +194,101 @@ Tet TetMesh::getNewTet(){
   return Tet(this, nTetsFillCount - 1);
 }
 
+void TetMesh::compressTets(){
+  // assuming the trivial case for now
+  std::vector<std::vector<size_t>> newTetAdjVs(nTetsFillCount);
+  for(size_t t_ind = 0; t_ind < nTetsFillCount; t_ind++){
+    newTetAdjVs[t_ind] = tAdjVs[t_ind];
+  }
+  nTetsCapacityCount = nTetsFillCount;
+  tAdjVs = newTetAdjVs;
+}
+
+
 // mutation routines
+Vertex TetMesh::buildVolOnFace(Face fIn){
+  Vertex raisedVertex = raiseVertexOnFace(fIn); // raise the surface skeleton first
+  printf("surface skeleton was raised by vertex %d\n", raisedVertex.getIndex());
+  Tet newT = getNewTet();
+
+  fAdjTs.resize(nFacesFillCount + fIn.degree()); // couldnt do it in surfaceMesh::raiseVert...()
+  
+
+  // update the Tet->V and F->T iterators
+  std::vector<size_t> tetVertices(fIn.degree() + 1);
+  size_t i = 0;
+  std::cout<<"2.5.5\n";
+  for(Halfedge he: fIn.adjacentHalfedges()){
+    tetVertices[i] = he.tailVertex().getIndex();
+    Face tmp_raised_face = get_connecting_face(he.tailVertex(), he.tipVertex(), raisedVertex);
+    if(tmp_raised_face.getIndex() == INVALID_IND) std::cout<<" raise Vertex on Face had gone wrong! :(\n";
+    else{
+      fAdjTs[tmp_raised_face.getIndex()].push_back(newT.getIndex());
+    }
+    i += 1;
+  }
+
+  tetVertices[fIn.degree()] = raisedVertex.getIndex();
+  fAdjTs[fIn.getIndex()].push_back(newT.getIndex());
+  tAdjVs[newT.getIndex()] = tetVertices;
+  
+
+  return raisedVertex;
+}
+
 Vertex TetMesh::splitTet(Tet tIn){
   
-  // Create the new center vertex
-  Vertex centerVert = getNewVertex();
+  // // Create the new center vertex
+  // Vertex centerVert = getNewVertex();
 
-  // Count degree to allocate elements
-  size_t volDegree = tIn.degree();
+  // // Count degree to allocate elements
+  // size_t volDegree = tIn.degree();
 
-  // == Create new halfedges/edges/faces around the center vertex
+  // // == Create new halfedges/edges/faces around the center vertex
 
-  // Create all of the new elements first, then hook them up below
-  std::vector<Tet> innerTets;
-  std::vector<Face> innerFaces;
-  std::vector<Halfedge> leadingHalfedges(volDegree); // the one that points towards the center
-  std::vector<Halfedge> trailingHalfedges(volDegree);
-  std::vector<Edge> innerEdges(volDegree); // aligned with leading he
-  for (size_t i = 0; i < volDegree; i++) {
-    // Re-use first face
-    if (i == 0) {
-      // innerFaces.push_back(fIn);
-      innerTets.push_back(tIn);
-    } else {
-      innerTets.push_back(getNewTet());
-    }
+  // // Create all of the new elements first, then hook them up below
+  // std::vector<Tet> innerTets;
+  // std::vector<Face> innerFaces;
+  // std::vector<Halfedge> leadingHalfedges(volDegree); // the one that points towards the center
+  // std::vector<Halfedge> trailingHalfedges(volDegree);
+  // std::vector<Edge> innerEdges(volDegree); // aligned with leading he
+  // for (size_t i = 0; i < volDegree; i++) {
+  //   // Re-use first face
+  //   if (i == 0) {
+  //     // innerFaces.push_back(fIn);
+  //     innerTets.push_back(tIn);
+  //   } else {
+  //     innerTets.push_back(getNewTet());
+  //   }
 
-    // Get the new edge group
-    Halfedge newHe = getNewEdgeTriple(false);
+  //   // Get the new edge group
+  //   Halfedge newHe = getNewEdgeTriple(false);
 
-    leadingHalfedges[i] = newHe;
-    trailingHalfedges[(i + 1) % volDegree] = newHe.twin(); // these inner edges only have 2 adj faces, so it makes sense. can always do sibling instead
-    innerEdges[i] = newHe.edge();
+  //   leadingHalfedges[i] = newHe;
+  //   trailingHalfedges[(i + 1) % volDegree] = newHe.twin(); // these inner edges only have 2 adj faces, so it makes sense. can always do sibling instead
+  //   innerEdges[i] = newHe.edge();
 
-    for (size_t j = 0; j < volDegree; j++) { // making a Face per each edge of the volume
-      if(j < i) innerFaces.push_back(getNewFace());
-    }  
-  }
+  //   for (size_t j = 0; j < volDegree; j++) { // making a Face per each edge of the volume
+  //     if(j < i) innerFaces.push_back(getNewFace());
+  //   }  
+  // }
 
-  // Form this list before we start, because we're about to start breaking pointers
-  std::vector<Face> boundaryFaces;
-  std::vector<std::vector<Halfedge>> boundaryFacesHalfedges;
-  for ( Face f: tIn.adjFaces()){
-    boundaryFaces.push_back(f);
-    std::vector<Halfedge> tmp_boundary_halfedges;
-    for (Halfedge he : f.adjacentHalfedges()) {
-      tmp_boundary_halfedges.push_back(he);
-    }
-    boundaryFacesHalfedges.push_back(tmp_boundary_halfedges);
-  }
+  // // Form this list before we start, because we're about to start breaking pointers
+  // std::vector<Face> boundaryFaces;
+  // std::vector<std::vector<Halfedge>> boundaryFacesHalfedges;
+  // for ( Face f: tIn.adjFaces()){
+  //   boundaryFaces.push_back(f);
+  //   std::vector<Halfedge> tmp_boundary_halfedges;
+  //   for (Halfedge he : f.adjacentHalfedges()) {
+  //     tmp_boundary_halfedges.push_back(he);
+  //   }
+  //   boundaryFacesHalfedges.push_back(tmp_boundary_halfedges);
+  // }
 
-  // Connect up all the pointers
-  // Each iteration processes one inner face
-  // ** take one boundary face. build a pyramid on it. One He 3 faces will be untouched. 
-  for (size_t i = 0; i < volDegree; i++) {
-
-    // Gather pointers
-    Face f = innerFaces[i];
-    Edge e = innerEdges[i];
-    Edge prevE = innerEdges[(i + faceDegree - 1) % faceDegree];
-    Halfedge leadingHe = leadingHalfedges[i];
-    Halfedge trailingHe = trailingHalfedges[i];
-    Halfedge boundaryHe = faceBoundaryHalfedges[i];
-    Halfedge nextTrailingHe = trailingHalfedges[(i + 1) % faceDegree];
-    Halfedge prevLeadingHe = leadingHalfedges[(i + faceDegree - 1) % faceDegree];
-
-    // face
-    fHalfedgeArr[f.getIndex()] = boundaryHe.getIndex();
-
-    // leading halfedge
-    heNextArr[leadingHe.getIndex()] = trailingHe.getIndex();
-    heVertexArr[leadingHe.getIndex()] = boundaryHe.next().vertex().getIndex();
-    heFaceArr[leadingHe.getIndex()] = f.getIndex();
-
-    // trailing halfedge
-    heNextArr[trailingHe.getIndex()] = boundaryHe.getIndex();
-    heVertexArr[trailingHe.getIndex()] = centerVert.getIndex();
-    heFaceArr[trailingHe.getIndex()] = f.getIndex();
-
-    // boundary halfedge
-    heNextArr[boundaryHe.getIndex()] = leadingHe.getIndex();
-    heFaceArr[boundaryHe.getIndex()] = f.getIndex();
-  }
-
-  vHalfedgeArr[centerVert.getIndex()] = trailingHalfedges[0].getIndex();
-
-  modificationTick++;
-  return centerVert;
+  // // Connect up all the pointers
+  // modificationTick++;
+  // return centerVert;
+  return Vertex(this, INVALID_IND);
 }
 
 } // namespace volume

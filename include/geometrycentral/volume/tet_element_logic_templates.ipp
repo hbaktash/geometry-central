@@ -14,9 +14,9 @@ template<> inline size_t dataIndexOfElement<volume::Tet             >(volume::Te
 
 // template<> inline volume::TetSet            iterateElements<volume::Tet         >(volume::TetMesh*     mesh)   { return mesh->tets();          }
 
-// template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<volume::Tet         >(volume::TetMesh* mesh    )   { return mesh->tetExpandCallbackList;   } // TODO
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<volume::Tet         >(volume::TetMesh* mesh    )   { return mesh->tetExpandCallbackList;   } // TODO
 
-// template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<volume::Tet          >(volume::TetMesh* mesh    )   { return mesh->tetPermuteCallbackList;   }
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<volume::Tet          >(volume::TetMesh* mesh    )   { return mesh->tetPermuteCallbackList;   }
 
 template<> inline std::string typeShortName<volume::Tet          >()            { return "t";   }
 

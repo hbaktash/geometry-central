@@ -3,8 +3,9 @@
 namespace geometrycentral {
 namespace volume {
 
-inline size_t TetMesh::nTets()         const { return nTetsCount;   }
+inline size_t TetMesh::nTets()         const { return nTetsCount;}
 inline size_t TetMesh::nTetsCapacity() const { return nTetsCapacityCount;}
+inline size_t TetMesh::nTetsFill() const { return nTetsFillCount;}
 
 
 // Range set iters
