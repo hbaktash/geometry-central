@@ -921,13 +921,13 @@ Vertex SurfaceMesh::raiseVertexOnFace(Face fIn){
   }
   vHalfedgeArr[centerVert.getIndex()] = trailingHalfedges[0].getIndex();
   
-  initializeHalfedgeNeighbors();
-  // for (Face f: innerFaces){
-  //   for (Halfedge he : f.adjacentHalfedges()) {
-  //     printf("going over he %d: v1 %d v2 %d \n", he.getIndex(), he.tailVertex().getIndex(), he.tipVertex().getIndex());
-  //     addToVertexLists(he);  // this facilitates  v.adjHalfEdges() 
-  //   }
-  // }
+  // initializeHalfedgeNeighbors();
+  for (Face f: innerFaces){
+    for (Halfedge he : f.adjacentHalfedges()) {
+      // printf("going over he %d: v1 %d v2 %d \n", he.getIndex(), he.tailVertex().getIndex(), he.tipVertex().getIndex());
+      addToVertexLists(he);  // this takes care of v.adjHalfEdges() 
+    }
+  }
 
   // printf("### checking how the new vertex is doing:\n");
   // std::cout<<"adj vertices\n";
@@ -1614,6 +1614,11 @@ Halfedge SurfaceMesh::getNewEdgeTriple(bool onBoundary) {
         heSiblingArr.resize(newHalfedgeCapacity);
         heEdgeArr.resize(newHalfedgeCapacity);
         heOrientArr.resize(newHalfedgeCapacity);
+        // added during tet-mesh debugging
+        heVertInNextArr.resize(newHalfedgeCapacity);
+        heVertInPrevArr.resize(newHalfedgeCapacity);
+        heVertOutNextArr.resize(newHalfedgeCapacity);
+        heVertOutPrevArr.resize(newHalfedgeCapacity);
       }
 
       nHalfedgesCapacityCount = newHalfedgeCapacity;

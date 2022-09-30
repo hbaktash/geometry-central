@@ -207,6 +207,7 @@ void TetMesh::compressTets(){
 
 // mutation routines
 Vertex TetMesh::buildVolOnFace(Face fIn){
+  std::cout<<"  -- starting to build Tet on face "<< fIn.getIndex()<<"\n";
   Vertex raisedVertex = raiseVertexOnFace(fIn); // raise the surface skeleton first
   printf("surface skeleton was raised by vertex %d\n", raisedVertex.getIndex());
   Tet newT = getNewTet();
