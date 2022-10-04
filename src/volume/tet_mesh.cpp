@@ -239,40 +239,45 @@ Vertex TetMesh::buildVolOnFace(Face fIn){
 
 Vertex TetMesh::splitTet(Tet tIn){
   
-  // // Create the new center vertex
-  // Vertex centerVert = getNewVertex();
+  // Create the new center vertex
+  Vertex centerVert = getNewVertex();
 
-  // // Count degree to allocate elements
-  // size_t volDegree = tIn.degree();
+  // Count degree to allocate elements; can only handle tets for now, but will attempt to keep generality as long as possible
+  size_t volDegree = tIn.degree();
 
-  // // == Create new halfedges/edges/faces around the center vertex
+  // == Create new halfedges/edges/faces around the center vertex
 
-  // // Create all of the new elements first, then hook them up below
-  // std::vector<Tet> innerTets;
-  // std::vector<Face> innerFaces;
-  // std::vector<Halfedge> leadingHalfedges(volDegree); // the one that points towards the center
-  // std::vector<Halfedge> trailingHalfedges(volDegree);
-  // std::vector<Edge> innerEdges(volDegree); // aligned with leading he
-  // for (size_t i = 0; i < volDegree; i++) {
-  //   // Re-use first face
-  //   if (i == 0) {
-  //     // innerFaces.push_back(fIn);
-  //     innerTets.push_back(tIn);
-  //   } else {
-  //     innerTets.push_back(getNewTet());
-  //   }
+  // Create all of the new elements first, then hook them up below
+  std::vector<Tet> innerTets;
+  std::vector<Face> innerFaces;
+  std::vector<std::vector<Halfedge>> leadingHalfedges(volDegree); // the one that points towards the center; one per each face
+  std::vector<std::vector<Halfedge>> trailingHalfedges(volDegree);
+  std::vector<Edge> innerEdges(volDegree); // aligned with leading he
+  for (size_t i = 0; i < volDegree; i++) {
+    // Re-use first face
+    if (i == 0) {
+      // innerFaces.push_back(fIn);
+      innerTets.push_back(tIn);
+    } else {
+      innerTets.push_back(getNewTet());
+    }
 
-  //   // Get the new edge group
-  //   Halfedge newHe = getNewEdgeTriple(false);
+    // Get the new edge group
+    // one he per neigh face of current vertex; tet assumption -> 3
+    size_t neigh_he_cnt = 3;
+    Halfedge he1 = getNewEdgeTriple(false), he2, he3;
+    
 
-  //   leadingHalfedges[i] = newHe;
-  //   trailingHalfedges[(i + 1) % volDegree] = newHe.twin(); // these inner edges only have 2 adj faces, so it makes sense. can always do sibling instead
-  //   innerEdges[i] = newHe.edge();
+    Halfedge newHe = getNewEdgeTriple(false);
 
-  //   for (size_t j = 0; j < volDegree; j++) { // making a Face per each edge of the volume
-  //     if(j < i) innerFaces.push_back(getNewFace());
-  //   }  
-  // }
+    leadingHalfedges[i] = newHe;
+    trailingHalfedges[(i + 1) % volDegree] = newHe.twin(); // these inner edges only have 2 adj faces, so it makes sense. can always do sibling instead
+    innerEdges[i] = newHe.edge();
+
+    for (size_t j = 0; j < volDegree; j++) { // making a Face per each edge of the volume
+      if(j < i) innerFaces.push_back(getNewFace());
+    }  
+  }
 
   // // Form this list before we start, because we're about to start breaking pointers
   // std::vector<Face> boundaryFaces;
