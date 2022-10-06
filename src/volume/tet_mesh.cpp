@@ -140,7 +140,15 @@ Tet TetMesh::get_connecting_tet(Vertex v1, Vertex v2, Vertex v3, Vertex v4){
   return Tet();
 }
 
-
+Halfedge TetMesh::get_he_of_edge_on_face(Edge e, Face f){
+  Halfedge he = e.halfedge();
+  Halfedge first_he = he;
+  do {
+    if(he.face() == f) return he;
+    he = he.sibling();
+  } while (he != first_he);
+  return Halfedge();
+}
 // helper fucntions 
 std::vector<std::vector<size_t>> triangles_from_tets(std::vector<std::vector<size_t>> tets_){
     // just adding tet faces. Will compress later
@@ -237,64 +245,200 @@ Vertex TetMesh::buildVolOnFace(Face fIn){
   return raisedVertex;
 }
 
-Vertex TetMesh::splitTet(Tet tIn){
+
+Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   
   // Create the new center vertex
   Vertex centerVert = getNewVertex();
 
-  // Count degree to allocate elements; can only handle tets for now, but will attempt to keep generality as long as possible
-  size_t volDegree = tIn.degree();
+  // going for the assumption that faces are triangles and cells are tets.
+  // ===== Creating elements ======
+  // - boundary vertices
+  std::vector<Vertex> vertices = tIn.adjVertices();
+  Vertex v1 = vertices[0], v2 = vertices[1], v3 = vertices[2], v4 = vertices[3]; // vertices of tIn
+  
+  // - boundary faces
+  Face f234 = get_connecting_face(v2,v3,v4), f134 = get_connecting_face(v1,v3,v4),
+       f124 = get_connecting_face(v1,v2,v4), f123 = get_connecting_face(v1,v2,v3);
+  // - duplicating boundary edges
+  Edge bE12 = connectingEdge(v1, v2), bE13 = connectingEdge(v1, v3), bE14 = connectingEdge(v1, v4),
+       bE23 = connectingEdge(v2, v3), bE24 = connectingEdge(v2, v4),
+       bE34 = connectingEdge(v3, v4);
+  
+  // Create all of the new elements (may some god forgive me)
+  // - new halfedges on boundary edges
+  Halfedge bhe12 = getNewHalfedge(true), bhe13 = getNewHalfedge(true), bhe14 = getNewHalfedge(true), 
+           bhe23 = getNewHalfedge(true), bhe24 = getNewHalfedge(true), 
+           bhe34 = getNewHalfedge(true);
 
-  // == Create new halfedges/edges/faces around the center vertex
+  // - new tets
+  Tet t0123 = tIn, t0124 = getNewTet(), t0134 = getNewTet(), t0234 = getNewTet(); 
+  // - new inner faces; one per boundary edge
+  Face f012 = getNewFace(), f013 = getNewFace(), f014 = getNewFace(),
+       f023 = getNewFace(), f024 = getNewFace(), 
+       f034 = getNewFace();
+  // - new inner halfEdges
+  Halfedge he01_012 = getNewHalfedge(true), he01_013 = getNewHalfedge(true), he01_014 = getNewHalfedge(true),
+           he02_021 = getNewHalfedge(true), he02_023 = getNewHalfedge(true), he02_024 = getNewHalfedge(true),
+           he03_031 = getNewHalfedge(true), he03_032 = getNewHalfedge(true), he03_034 = getNewHalfedge(true),
+           he04_041 = getNewHalfedge(true), he04_042 = getNewHalfedge(true), he04_043 = getNewHalfedge(true);
+  Edge e01 = getNewEdge(), e02 = getNewEdge(), e03 = getNewEdge(), e04 = getNewEdge();
+  // ======= hooking up elements ======= (may some god forgive me)
+  // vertex -> he (just for center)
+  vHalfedgeArr[centerVert.getIndex()] = he01_012.getIndex();
 
-  // Create all of the new elements first, then hook them up below
-  std::vector<Tet> innerTets;
-  std::vector<Face> innerFaces;
-  std::vector<std::vector<Halfedge>> leadingHalfedges(volDegree); // the one that points towards the center; one per each face
-  std::vector<std::vector<Halfedge>> trailingHalfedges(volDegree);
-  std::vector<Edge> innerEdges(volDegree); // aligned with leading he
-  for (size_t i = 0; i < volDegree; i++) {
-    // Re-use first face
-    if (i == 0) {
-      // innerFaces.push_back(fIn);
-      innerTets.push_back(tIn);
-    } else {
-      innerTets.push_back(getNewTet());
-    }
+  // all he -> edge
+  heEdgeArr[bhe12.getIndex()] = bE12.getIndex();heEdgeArr[bhe13.getIndex()] = bE13.getIndex();heEdgeArr[bhe14.getIndex()] = bE14.getIndex();heEdgeArr[bhe23.getIndex()] = bE23.getIndex();heEdgeArr[bhe24.getIndex()] = bE24.getIndex();heEdgeArr[bhe34.getIndex()] = bE34.getIndex();
+  heEdgeArr[he01_012.getIndex()] = e01.getIndex(); heEdgeArr[he01_013.getIndex()] = e01.getIndex(); heEdgeArr[he01_014.getIndex()] = e01.getIndex();
+  heEdgeArr[he02_021.getIndex()] = e02.getIndex(); heEdgeArr[he02_023.getIndex()] = e02.getIndex(); heEdgeArr[he02_024.getIndex()] = e02.getIndex();
+  heEdgeArr[he03_031.getIndex()] = e03.getIndex(); heEdgeArr[he03_032.getIndex()] = e03.getIndex(); heEdgeArr[he03_034.getIndex()] = e03.getIndex();
+  heEdgeArr[he04_041.getIndex()] = e04.getIndex(); heEdgeArr[he04_042.getIndex()] = e04.getIndex(); heEdgeArr[he04_043.getIndex()] = e04.getIndex(); 
+  // all edge -> halfedge
+  eHalfedgeArr[e01.getIndex()] = he01_012.getIndex();
+  eHalfedgeArr[e02.getIndex()] = he02_023.getIndex();
+  eHalfedgeArr[e03.getIndex()] = he03_034.getIndex();
+  eHalfedgeArr[e04.getIndex()] = he04_041.getIndex();
 
-    // Get the new edge group
-    // one he per neigh face of current vertex; tet assumption -> 3
-    size_t neigh_he_cnt = 3;
-    Halfedge he1 = getNewEdgeTriple(false), he2, he3;
-    
+  // all he -> face (inner face only)
+  heFaceArr[bhe12.getIndex()] = f012.getIndex(); heFaceArr[bhe13.getIndex()] = f013.getIndex(); heFaceArr[bhe14.getIndex()] = f014.getIndex(); heFaceArr[bhe23.getIndex()] = f023.getIndex(); heFaceArr[bhe24.getIndex()] = f024.getIndex(); heFaceArr[bhe34.getIndex()] = f034.getIndex();
+  heFaceArr[he01_012.getIndex()] = f012.getIndex(); heFaceArr[he01_013.getIndex()] = f013.getIndex(); heFaceArr[he01_014.getIndex()] = f014.getIndex();
+  heFaceArr[he02_021.getIndex()] = f012.getIndex(); heFaceArr[he02_023.getIndex()] = f023.getIndex(); heFaceArr[he02_024.getIndex()] = f024.getIndex();
+  heFaceArr[he03_031.getIndex()] = f013.getIndex(); heFaceArr[he03_032.getIndex()] = f023.getIndex(); heFaceArr[he03_034.getIndex()] = f034.getIndex();
+  heFaceArr[he04_041.getIndex()] = f014.getIndex(); heFaceArr[he04_042.getIndex()] = f024.getIndex(); heFaceArr[he04_043.getIndex()] = f034.getIndex();
+  // [inner] face -> [boundary] halfedge
+  fHalfedgeArr[f012.getIndex()] = bhe12.getIndex(); fHalfedgeArr[f013.getIndex()] = bhe13.getIndex(); fHalfedgeArr[f014.getIndex()] = bhe14.getIndex(); 
+  fHalfedgeArr[f023.getIndex()] = bhe23.getIndex(); fHalfedgeArr[f024.getIndex()] = bhe24.getIndex(); 
+  fHalfedgeArr[f034.getIndex()] = bhe34.getIndex();
+  
+  // all he -> vertex  &&  all he -> next 
+  //    012 face
+  heVertexArr[bhe12.getIndex()] = v1.getIndex();
+  heNextArr[bhe12.getIndex()] = he02_021.getIndex();
+  heVertexArr[he02_021.getIndex()] = v2.getIndex();
+  heNextArr[he02_021.getIndex()] = he01_012.getIndex();
+  heVertexArr[he01_012.getIndex()] = centerVert.getIndex();
+  heNextArr[he01_012.getIndex()] = bhe12.getIndex();
+  //    013 face
+  heVertexArr[bhe13.getIndex()] = v1.getIndex();
+  heNextArr[bhe13.getIndex()] = he03_031.getIndex();
+  heVertexArr[he03_031.getIndex()] = v3.getIndex();
+  heNextArr[he03_031.getIndex()] = he01_013.getIndex();
+  heVertexArr[he01_013.getIndex()] = centerVert.getIndex();
+  heNextArr[he01_013.getIndex()] = bhe13.getIndex();
+  //    014 face
+  heVertexArr[bhe14.getIndex()] = v1.getIndex();
+  heNextArr[bhe14.getIndex()] = he04_041.getIndex();
+  heVertexArr[he04_041.getIndex()] = v4.getIndex();
+  heNextArr[he04_041.getIndex()] = he01_014.getIndex();
+  heVertexArr[he01_014.getIndex()] = centerVert.getIndex();
+  heNextArr[he01_014.getIndex()] = bhe14.getIndex();
+  //    023 face
+  heVertexArr[bhe23.getIndex()] = v2.getIndex();
+  heNextArr[bhe23.getIndex()] = he03_032.getIndex();
+  heVertexArr[he03_032.getIndex()] = v3.getIndex();
+  heNextArr[he03_032.getIndex()] = he02_023.getIndex();
+  heVertexArr[he02_023.getIndex()] = centerVert.getIndex();
+  heNextArr[he02_023.getIndex()] = bhe23.getIndex();
+  //    024 face
+  heVertexArr[bhe24.getIndex()] = v2.getIndex();
+  heNextArr[bhe24.getIndex()] = he04_042.getIndex();
+  heVertexArr[he04_042.getIndex()] = v4.getIndex();
+  heNextArr[he04_042.getIndex()] = he02_024.getIndex();
+  heVertexArr[he02_024.getIndex()] = centerVert.getIndex();
+  heNextArr[he02_024.getIndex()] = bhe24.getIndex();
+  //    034 face
+  heVertexArr[bhe34.getIndex()] = v3.getIndex();
+  heNextArr[bhe34.getIndex()] = he04_043.getIndex();
+  heVertexArr[he04_043.getIndex()] = v4.getIndex();
+  heNextArr[he04_043.getIndex()] = he03_034.getIndex();
+  heVertexArr[he03_034.getIndex()] = centerVert.getIndex();
+  heNextArr[he03_034.getIndex()] = bhe34.getIndex();
 
-    Halfedge newHe = getNewEdgeTriple(false);
-
-    leadingHalfedges[i] = newHe;
-    trailingHalfedges[(i + 1) % volDegree] = newHe.twin(); // these inner edges only have 2 adj faces, so it makes sense. can always do sibling instead
-    innerEdges[i] = newHe.edge();
-
-    for (size_t j = 0; j < volDegree; j++) { // making a Face per each edge of the volume
-      if(j < i) innerFaces.push_back(getNewFace());
-    }  
+  // - sibling relationships
+  //    - inner ge's sibling rels
+  heSiblingArr[he01_012.getIndex()] = he01_013.getIndex(); heSiblingArr[he01_013.getIndex()] = he01_014.getIndex(); heSiblingArr[he01_014.getIndex()] = he01_012.getIndex(); 
+  heSiblingArr[he02_021.getIndex()] = he02_023.getIndex(); heSiblingArr[he02_023.getIndex()] = he02_024.getIndex(); heSiblingArr[he02_024.getIndex()] = he02_021.getIndex();
+  heSiblingArr[he03_031.getIndex()] = he03_032.getIndex(); heSiblingArr[he03_032.getIndex()] = he03_034.getIndex(); heSiblingArr[he03_034.getIndex()] = he03_031.getIndex();
+  heSiblingArr[he04_041.getIndex()] = he04_042.getIndex(); heSiblingArr[he04_042.getIndex()] = he04_043.getIndex(); heSiblingArr[he04_043.getIndex()] = he04_041.getIndex();
+  //    - boundary he's sibling rels
+  //      ** I'll try to respect the sibling order of older halfEdges
+  
+  //    12
+  Halfedge he12_f123 = get_he_of_edge_on_face(bE12, f123),
+           he12_f124 = get_he_of_edge_on_face(bE12, f124);
+  Halfedge first_he, second_he;
+  if     (he12_f123.sibling() == he12_f124) {  first_he = he12_f123;  second_he = he12_f124;}
+  else if(he12_f124.sibling() == he12_f123) {  first_he = he12_f124;  second_he = he12_f123;}
+  else{
+    std::logic_error(" --------- adj faces on a tet should be siblings ----------");
   }
+  heSiblingArr[first_he.getIndex()] = bhe12.getIndex();
+  heSiblingArr[bhe12.getIndex()] = second_he.getIndex();
+  //    13
+  Halfedge he13_f132 = get_he_of_edge_on_face(bE13, f123),
+           he13_f134 = get_he_of_edge_on_face(bE13, f134);
+  Halfedge first_he, second_he;
+  if     (he13_f132.sibling() == he13_f134) {  first_he = he13_f132;  second_he = he13_f134;}
+  else if(he13_f134.sibling() == he13_f132) {  first_he = he13_f134;  second_he = he13_f132;}
+  else{
+    std::logic_error(" --------- adj faces on a tet should be tailing he siblings ----------");
+  }
+  heSiblingArr[first_he.getIndex()] = bhe13.getIndex();
+  heSiblingArr[bhe13.getIndex()] = second_he.getIndex();
+  //    14
+  Halfedge he14_f142 = get_he_of_edge_on_face(bE14, f124),
+           he14_f143 = get_he_of_edge_on_face(bE14, f134);
+  Halfedge first_he, second_he;
+  if     (he14_f142.sibling() == he14_f142) {  first_he = he14_f142;  second_he = he14_f143;}
+  else if(he14_f143.sibling() == he14_f143) {  first_he = he14_f143;  second_he = he14_f142;}
+  else{
+    std::logic_error(" --------- adj faces on a tet should be tailing he siblings ----------");
+  }
+  heSiblingArr[first_he.getIndex()] = bhe14.getIndex();
+  heSiblingArr[bhe14.getIndex()] = second_he.getIndex();
+  //    23
+  Halfedge he23_f231 = get_he_of_edge_on_face(bE23, f123),
+           he23_f234 = get_he_of_edge_on_face(bE23, f234);
+  Halfedge first_he, second_he;
+  if     (he23_f231.sibling() == he23_f234) {  first_he = he23_f231;  second_he = he23_f234;}
+  else if(he23_f234.sibling() == he23_f231) {  first_he = he23_f234;  second_he = he23_f231;}
+  else{
+    std::logic_error(" --------- adj faces on a tet should be tailing he siblings ----------");
+  }
+  heSiblingArr[first_he.getIndex()] = bhe23.getIndex();
+  heSiblingArr[bhe23.getIndex()] = second_he.getIndex();
+  //    24
+  Halfedge he24_f241 = get_he_of_edge_on_face(bE24, f124),
+           he24_f243 = get_he_of_edge_on_face(bE24, f234);
+  Halfedge first_he, second_he;
+  if     (he24_f241.sibling() == he24_f243) {  first_he = he24_f241;  second_he = he24_f243;}
+  else if(he24_f243.sibling() == he24_f241) {  first_he = he24_f243;  second_he = he24_f241;}
+  else{
+    std::logic_error(" --------- adj faces on a tet should be tailing he siblings ----------");
+  }
+  heSiblingArr[first_he.getIndex()] = bhe24.getIndex();
+  heSiblingArr[bhe24.getIndex()] = second_he.getIndex();
+  //    34
+  Halfedge he34_f341 = get_he_of_edge_on_face(bE34, f134),
+           he34_f342 = get_he_of_edge_on_face(bE34, f234);
+  Halfedge first_he, second_he;
+  if     (he34_f341.sibling() == he34_f342) {  first_he = he34_f341;  second_he = he34_f342;}
+  else if(he34_f342.sibling() == he34_f341) {  first_he = he34_f342;  second_he = he34_f341;}
+  else{
+    std::logic_error(" --------- adj faces on a tet should be tailing he siblings ----------");
+  }
+  heSiblingArr[first_he.getIndex()] = bhe34.getIndex();
+  heSiblingArr[bhe34.getIndex()] = second_he.getIndex();
+  
+  addToVertexLists(bhe12); addToVertexLists(bhe13); addToVertexLists(bhe14); addToVertexLists(bhe23); addToVertexLists(bhe24); addToVertexLists(bhe34);
+  addToVertexLists(he01_012); addToVertexLists(he01_013); addToVertexLists(he01_014);
+  addToVertexLists(he02_021); addToVertexLists(he02_023); addToVertexLists(he02_024);
+  addToVertexLists(he03_031); addToVertexLists(he03_032); addToVertexLists(he03_034);
+  addToVertexLists(he04_041); addToVertexLists(he04_042); addToVertexLists(he04_043);
 
-  // // Form this list before we start, because we're about to start breaking pointers
-  // std::vector<Face> boundaryFaces;
-  // std::vector<std::vector<Halfedge>> boundaryFacesHalfedges;
-  // for ( Face f: tIn.adjFaces()){
-  //   boundaryFaces.push_back(f);
-  //   std::vector<Halfedge> tmp_boundary_halfedges;
-  //   for (Halfedge he : f.adjacentHalfedges()) {
-  //     tmp_boundary_halfedges.push_back(he);
-  //   }
-  //   boundaryFacesHalfedges.push_back(tmp_boundary_halfedges);
-  // }
-
-  // // Connect up all the pointers
-  // modificationTick++;
-  // return centerVert;
-  return Vertex(this, INVALID_IND);
+  // ##### TODO heOrientAr ######
+  
+  return centerVert;
 }
 
 } // namespace volume

@@ -887,7 +887,7 @@ Vertex SurfaceMesh::raiseVertexOnFace(Face fIn){
 
     Halfedge tmp_he = getNewHalfedge(false); // to hook up the new faces with the input face
 
-    // new halfedge properties     
+    // new halfedge basic properties     
     heVertexArr[tmp_he.getIndex()] = boundaryHe.vertex().getIndex(); // i.e. tailvertex()
     heEdgeArr[tmp_he.getIndex()] = boundaryHe.edge().getIndex();
     heOrientArr[tmp_he.getIndex()] = heOrientArr[boundaryHe.getIndex()];
