@@ -219,7 +219,6 @@ Vertex TetMesh::buildVolOnFace(Face fIn){
   Vertex raisedVertex = raiseVertexOnFace(fIn); // raise the surface skeleton first
   printf("surface skeleton was raised by vertex %d\n", raisedVertex.getIndex());
   Tet newT = getNewTet();
-
   fAdjTs.resize(nFacesFillCount + fIn.degree()); // couldnt do it in surfaceMesh::raiseVert...()
   
 
@@ -241,7 +240,6 @@ Vertex TetMesh::buildVolOnFace(Face fIn){
   fAdjTs[fIn.getIndex()].push_back(newT.getIndex());
   tAdjVs[newT.getIndex()] = tetVertices;
   
-
   return raisedVertex;
 }
 
@@ -284,6 +282,28 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
            he04_041 = getNewHalfedge(true), he04_042 = getNewHalfedge(true), he04_043 = getNewHalfedge(true);
   Edge e01 = getNewEdge(), e02 = getNewEdge(), e03 = getNewEdge(), e04 = getNewEdge();
   // ======= hooking up elements ======= (may some god forgive me)
+  // first for higher level stuff 
+  // tet -> vertex && face -> tet
+  std::cout<< "Before\n";
+  fAdjTs.resize(nFacesFillCount + 4);
+  for(int i = 0 ; i < fAdjTs[f123.getIndex()].size() ; i++){
+    if(fAdjTs[f123.getIndex()][i] == tIn.getIndex()) fAdjTs[f123.getIndex()][i] = t0123.getIndex(); 
+  }
+  for(int i = 0 ; i < fAdjTs[f124.getIndex()].size() ; i++){
+    if(fAdjTs[f124.getIndex()][i] == tIn.getIndex()) fAdjTs[f124.getIndex()][i] = t0124.getIndex(); 
+  }
+  for(int i = 0 ; i < fAdjTs[f134.getIndex()].size() ; i++){
+    if(fAdjTs[f134.getIndex()][i] == tIn.getIndex()) fAdjTs[f134.getIndex()][i] = t0134.getIndex(); 
+  }
+  for(int i = 0 ; i < fAdjTs[f234.getIndex()].size() ; i++){
+    if(fAdjTs[f234.getIndex()][i] == tIn.getIndex()) fAdjTs[f234.getIndex()][i] = t0234.getIndex(); 
+  }
+  std::cout<< "mid\n";
+  tAdjVs[t0123.getIndex()] = {centerVert.getIndex(), v1.getIndex(), v2.getIndex(), v3.getIndex()};
+  tAdjVs[t0124.getIndex()] = {centerVert.getIndex(), v1.getIndex(), v2.getIndex(), v4.getIndex()};
+  tAdjVs[t0134.getIndex()] = {centerVert.getIndex(), v1.getIndex(), v3.getIndex(), v4.getIndex()};
+  tAdjVs[t0234.getIndex()] = {centerVert.getIndex(), v4.getIndex(), v2.getIndex(), v3.getIndex()};
+  std::cout<< "after \n";
   // vertex -> he (just for center)
   vHalfedgeArr[centerVert.getIndex()] = he01_012.getIndex();
 
@@ -295,7 +315,7 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   heEdgeArr[he04_041.getIndex()] = e04.getIndex(); heEdgeArr[he04_042.getIndex()] = e04.getIndex(); heEdgeArr[he04_043.getIndex()] = e04.getIndex(); 
   // all edge -> halfedge
   eHalfedgeArr[e01.getIndex()] = he01_012.getIndex();
-  eHalfedgeArr[e02.getIndex()] = he02_023.getIndex();
+  eHalfedgeArr[e02.getIndex()] = he02_021.getIndex();
   eHalfedgeArr[e03.getIndex()] = he03_034.getIndex();
   eHalfedgeArr[e04.getIndex()] = he04_041.getIndex();
 
@@ -318,6 +338,8 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   heNextArr[he02_021.getIndex()] = he01_012.getIndex();
   heVertexArr[he01_012.getIndex()] = centerVert.getIndex();
   heNextArr[he01_012.getIndex()] = bhe12.getIndex();
+
+  heOrientArr[bhe12.getIndex()] = bE12.firstVertex() == v1;
   //    013 face
   heVertexArr[bhe13.getIndex()] = v1.getIndex();
   heNextArr[bhe13.getIndex()] = he03_031.getIndex();
@@ -325,6 +347,8 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   heNextArr[he03_031.getIndex()] = he01_013.getIndex();
   heVertexArr[he01_013.getIndex()] = centerVert.getIndex();
   heNextArr[he01_013.getIndex()] = bhe13.getIndex();
+
+  heOrientArr[bhe13.getIndex()] = bE13.firstVertex() == v1;
   //    014 face
   heVertexArr[bhe14.getIndex()] = v1.getIndex();
   heNextArr[bhe14.getIndex()] = he04_041.getIndex();
@@ -332,6 +356,8 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   heNextArr[he04_041.getIndex()] = he01_014.getIndex();
   heVertexArr[he01_014.getIndex()] = centerVert.getIndex();
   heNextArr[he01_014.getIndex()] = bhe14.getIndex();
+
+  heOrientArr[bhe14.getIndex()] = bE14.firstVertex() == v1;
   //    023 face
   heVertexArr[bhe23.getIndex()] = v2.getIndex();
   heNextArr[bhe23.getIndex()] = he03_032.getIndex();
@@ -339,6 +365,8 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   heNextArr[he03_032.getIndex()] = he02_023.getIndex();
   heVertexArr[he02_023.getIndex()] = centerVert.getIndex();
   heNextArr[he02_023.getIndex()] = bhe23.getIndex();
+
+  heOrientArr[bhe23.getIndex()] = bE23.firstVertex() == v2;
   //    024 face
   heVertexArr[bhe24.getIndex()] = v2.getIndex();
   heNextArr[bhe24.getIndex()] = he04_042.getIndex();
@@ -346,6 +374,8 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   heNextArr[he04_042.getIndex()] = he02_024.getIndex();
   heVertexArr[he02_024.getIndex()] = centerVert.getIndex();
   heNextArr[he02_024.getIndex()] = bhe24.getIndex();
+
+  heOrientArr[bhe24.getIndex()] = bE24.firstVertex() == v2;
   //    034 face
   heVertexArr[bhe34.getIndex()] = v3.getIndex();
   heNextArr[bhe34.getIndex()] = he04_043.getIndex();
@@ -353,6 +383,31 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   heNextArr[he04_043.getIndex()] = he03_034.getIndex();
   heVertexArr[he03_034.getIndex()] = centerVert.getIndex();
   heNextArr[he03_034.getIndex()] = bhe34.getIndex();
+
+  heOrientArr[bhe34.getIndex()] = bE34.firstVertex() == v3;
+
+
+  // - orientation of all he
+
+  // eHalfedgeArr[e01.getIndex()] = he01_012.getIndex();
+  // eHalfedgeArr[e02.getIndex()] = he02_021.getIndex();
+  // eHalfedgeArr[e03.getIndex()] = he03_034.getIndex();
+  // eHalfedgeArr[e04.getIndex()] = he04_041.getIndex();
+  heOrientArr[he01_012.getIndex()] = true;
+  heOrientArr[he01_013.getIndex()] = e01.firstVertex() == he01_013.vertex();
+  heOrientArr[he01_014.getIndex()] = e01.firstVertex() == he01_014.vertex();
+
+  heOrientArr[he02_021.getIndex()] = true;
+  heOrientArr[he02_023.getIndex()] = e02.firstVertex() == he02_023.vertex();
+  heOrientArr[he02_024.getIndex()] = e02.firstVertex() == he02_024.vertex();
+
+  heOrientArr[he03_034.getIndex()] = true;
+  heOrientArr[he03_031.getIndex()] = e03.firstVertex() == he03_031.vertex();
+  heOrientArr[he03_032.getIndex()] = e03.firstVertex() == he03_032.vertex();
+
+  heOrientArr[he04_041.getIndex()] = true;
+  heOrientArr[he04_042.getIndex()] = e04.firstVertex() == he04_042.vertex();
+  heOrientArr[he04_043.getIndex()] = e04.firstVertex() == he04_043.vertex();
 
   // - sibling relationships
   //    - inner ge's sibling rels
@@ -363,10 +418,10 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   //    - boundary he's sibling rels
   //      ** I'll try to respect the sibling order of older halfEdges
   
+  Halfedge first_he, second_he;
   //    12
   Halfedge he12_f123 = get_he_of_edge_on_face(bE12, f123),
            he12_f124 = get_he_of_edge_on_face(bE12, f124);
-  Halfedge first_he, second_he;
   if     (he12_f123.sibling() == he12_f124) {  first_he = he12_f123;  second_he = he12_f124;}
   else if(he12_f124.sibling() == he12_f123) {  first_he = he12_f124;  second_he = he12_f123;}
   else{
@@ -377,7 +432,6 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   //    13
   Halfedge he13_f132 = get_he_of_edge_on_face(bE13, f123),
            he13_f134 = get_he_of_edge_on_face(bE13, f134);
-  Halfedge first_he, second_he;
   if     (he13_f132.sibling() == he13_f134) {  first_he = he13_f132;  second_he = he13_f134;}
   else if(he13_f134.sibling() == he13_f132) {  first_he = he13_f134;  second_he = he13_f132;}
   else{
@@ -388,7 +442,6 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   //    14
   Halfedge he14_f142 = get_he_of_edge_on_face(bE14, f124),
            he14_f143 = get_he_of_edge_on_face(bE14, f134);
-  Halfedge first_he, second_he;
   if     (he14_f142.sibling() == he14_f142) {  first_he = he14_f142;  second_he = he14_f143;}
   else if(he14_f143.sibling() == he14_f143) {  first_he = he14_f143;  second_he = he14_f142;}
   else{
@@ -399,7 +452,6 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   //    23
   Halfedge he23_f231 = get_he_of_edge_on_face(bE23, f123),
            he23_f234 = get_he_of_edge_on_face(bE23, f234);
-  Halfedge first_he, second_he;
   if     (he23_f231.sibling() == he23_f234) {  first_he = he23_f231;  second_he = he23_f234;}
   else if(he23_f234.sibling() == he23_f231) {  first_he = he23_f234;  second_he = he23_f231;}
   else{
@@ -410,7 +462,6 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   //    24
   Halfedge he24_f241 = get_he_of_edge_on_face(bE24, f124),
            he24_f243 = get_he_of_edge_on_face(bE24, f234);
-  Halfedge first_he, second_he;
   if     (he24_f241.sibling() == he24_f243) {  first_he = he24_f241;  second_he = he24_f243;}
   else if(he24_f243.sibling() == he24_f241) {  first_he = he24_f243;  second_he = he24_f241;}
   else{
@@ -421,7 +472,6 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   //    34
   Halfedge he34_f341 = get_he_of_edge_on_face(bE34, f134),
            he34_f342 = get_he_of_edge_on_face(bE34, f234);
-  Halfedge first_he, second_he;
   if     (he34_f341.sibling() == he34_f342) {  first_he = he34_f341;  second_he = he34_f342;}
   else if(he34_f342.sibling() == he34_f341) {  first_he = he34_f342;  second_he = he34_f341;}
   else{
@@ -436,9 +486,23 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   addToVertexLists(he03_031); addToVertexLists(he03_032); addToVertexLists(he03_034);
   addToVertexLists(he04_041); addToVertexLists(he04_042); addToVertexLists(he04_043);
 
-  // ##### TODO heOrientAr ######
-  
   return centerVert;
+}
+
+void TetMesh::validateConnectivity(){
+  // for the surface skeleton first (Thanks Nick!)
+  SurfaceMesh::validateConnectivity();
+  
+  // Tet stuff 
+  for(Face f : faces()){
+    bool found_it = false;
+    for(Tet t : f.adjacentTets()){
+      for(Face tf: t.adjFaces()){
+        if(tf == f) found_it = true;
+      }
+    }
+    if(!found_it) std::logic_error("face.tet did not have face in tet.faces!");
+  }
 }
 
 } // namespace volume

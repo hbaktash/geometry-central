@@ -53,7 +53,7 @@ public:
     // navigation helpers
     Face get_connecting_face(Vertex v1, Vertex v2, Vertex v3); // assuming we dont have non-manifold(?!) edges or duplicat(!?) or.. faces (3-manifold) ; generally we should return a vector<Face>.
     Tet get_connecting_tet(Vertex v1, Vertex v2, Vertex v3, Vertex v4); // assuming we dont have duplicate(?!) tets..; otherwise ..//..
-    
+    Halfedge get_he_of_edge_on_face(Edge e, Face f);
     // Range-based loops
     TetSet tets();
     
@@ -71,11 +71,18 @@ public:
     // Compression callbacks
     std::list<std::function<void(const std::vector<size_t>&)>> tetPermuteCallbackList;
     
+    // sanity checks
+    void validateConnectivity();
+
+
     // element counters getters
     size_t nTets() const;
     size_t nTetsCapacity() const;
     size_t nTetsFill() const;
 
+    // get some element
+    Tet tet(size_t index);
+    
 protected:
     // element counters
     
