@@ -151,7 +151,7 @@ public:
   // mesh nonmanifold, and thus is only permitted on general surfaces meshes.
   Face duplicateFace(Face f);
 
-  // added for tet mesh
+  // added mainly for tet mesh
   // Given a face, insert a vertex on top of it; without removing the face itself. 
   // (almost like splitFace in manifold_surface_mesh).
   Vertex raiseVertexOnFace(Face f);

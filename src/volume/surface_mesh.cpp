@@ -1256,8 +1256,13 @@ void SurfaceMesh::validateConnectivity() {
     Halfedge firstHe = he;
     size_t count = 0;
     do {
-      if (currHe.edge() != he.edge())
+      if (currHe.edge() != he.edge()){
+        printf("cuur he %d (%d,%d)'s edge is %d, where it shouldve been he %d (%d,%d), with edge %d\n", 
+                currHe.getIndex(), currHe.tailVertex().getIndex(), currHe.tipVertex().getIndex(),
+                currHe.edge().getIndex(),
+                he.getIndex(), he.tailVertex().getIndex(), he.tipVertex().getIndex(), he.edge().getIndex());
         throw std::logic_error("(he sibling) halfedge sibling doesn't have edge == he.edge");
+      }
       if (count > nHalfedges()) throw std::logic_error("(he sibling) halfedge sibling doesn't cycle back");
       currHe = currHe.sibling();
       count++;
@@ -1351,10 +1356,17 @@ void SurfaceMesh::validateConnectivity() {
       size_t iHe = he.getIndex();
       Vertex thisTail = he.vertex();
       Vertex thisTip = he.next().vertex();
-      if (Halfedge(this, heVertOutNextArr[iHe]).vertex() != thisTail)
+      // printf("")
+      if (Halfedge(this, heVertOutNextArr[iHe]).vertex() != thisTail){
+        Halfedge nextOut = Halfedge(this, heVertOutNextArr[iHe]);
+        printf("next out he %d (%d, %d)", nextOut.getIndex(), nextOut.tailVertex().getIndex(), nextOut.tipVertex().getIndex());
         throw std::logic_error("heVertOutNextArr is not outgoing from same vert");
-      if (Halfedge(this, heVertOutPrevArr[iHe]).vertex() != thisTail)
+      }
+      if (Halfedge(this, heVertOutPrevArr[iHe]).vertex() != thisTail){
+        Halfedge prevOut = Halfedge(this, heVertOutPrevArr[iHe]);
+        printf("prev out he %d (%d, %d)", prevOut.getIndex(), prevOut.tailVertex().getIndex(), prevOut.tipVertex().getIndex());
         throw std::logic_error("heVertOutPrevArr is not outgoing from same vert");
+      }
       if (Halfedge(this, heVertInNextArr[iHe]).next().vertex() != thisTip)
         throw std::logic_error("heVertInNextArr is not incoming from same vert");
       if (Halfedge(this, heVertInPrevArr[iHe]).next().vertex() != thisTip)
