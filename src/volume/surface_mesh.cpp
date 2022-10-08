@@ -718,6 +718,7 @@ void SurfaceMesh::removeFromVertexLists(Halfedge he) {
     vHeOutStartArr[he.tailVertex().getIndex()] = (iP == i) ? INVALID_IND : iP;
   }
 }
+
 void SurfaceMesh::addToVertexLists(Halfedge he) {
   size_t i = he.getIndex();
 
@@ -1356,17 +1357,10 @@ void SurfaceMesh::validateConnectivity() {
       size_t iHe = he.getIndex();
       Vertex thisTail = he.vertex();
       Vertex thisTip = he.next().vertex();
-      // printf("")
-      if (Halfedge(this, heVertOutNextArr[iHe]).vertex() != thisTail){
-        Halfedge nextOut = Halfedge(this, heVertOutNextArr[iHe]);
-        printf("next out he %d (%d, %d)", nextOut.getIndex(), nextOut.tailVertex().getIndex(), nextOut.tipVertex().getIndex());
+      if (Halfedge(this, heVertOutNextArr[iHe]).vertex() != thisTail)
         throw std::logic_error("heVertOutNextArr is not outgoing from same vert");
-      }
-      if (Halfedge(this, heVertOutPrevArr[iHe]).vertex() != thisTail){
-        Halfedge prevOut = Halfedge(this, heVertOutPrevArr[iHe]);
-        printf("prev out he %d (%d, %d)", prevOut.getIndex(), prevOut.tailVertex().getIndex(), prevOut.tipVertex().getIndex());
+      if (Halfedge(this, heVertOutPrevArr[iHe]).vertex() != thisTail)
         throw std::logic_error("heVertOutPrevArr is not outgoing from same vert");
-      }
       if (Halfedge(this, heVertInNextArr[iHe]).next().vertex() != thisTip)
         throw std::logic_error("heVertInNextArr is not incoming from same vert");
       if (Halfedge(this, heVertInPrevArr[iHe]).next().vertex() != thisTip)

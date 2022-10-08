@@ -304,6 +304,8 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   tAdjVs[t0234.getIndex()] = {centerVert.getIndex(), v4.getIndex(), v2.getIndex(), v3.getIndex()};
   // vertex -> he (just for center)
   vHalfedgeArr[centerVert.getIndex()] = he01_012.getIndex();
+  vHeOutStartArr[centerVert.getIndex()] = INVALID_IND; // will be handled later; TODO this should hold by default.
+  vHeInStartArr[centerVert.getIndex()] = INVALID_IND; // will be handled later; TODO this should hold by default.
 
   // all he -> edge
   heEdgeArr[bhe12.getIndex()] = bE12.getIndex();heEdgeArr[bhe13.getIndex()] = bE13.getIndex(); heEdgeArr[bhe14.getIndex()] = bE14.getIndex();heEdgeArr[bhe23.getIndex()] = bE23.getIndex();heEdgeArr[bhe24.getIndex()] = bE24.getIndex();heEdgeArr[bhe34.getIndex()] = bE34.getIndex();
@@ -393,20 +395,20 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   // eHalfedgeArr[e03.getIndex()] = he03_034.getIndex();
   // eHalfedgeArr[e04.getIndex()] = he04_041.getIndex();
   heOrientArr[he01_012.getIndex()] = true;
-  heOrientArr[he01_013.getIndex()] = e01.firstVertex() == he01_013.vertex();
-  heOrientArr[he01_014.getIndex()] = e01.firstVertex() == he01_014.vertex();
+  heOrientArr[he01_013.getIndex()] = (e01.firstVertex() == he01_013.vertex());
+  heOrientArr[he01_014.getIndex()] = (e01.firstVertex() == he01_014.vertex());
 
   heOrientArr[he02_021.getIndex()] = true;
-  heOrientArr[he02_023.getIndex()] = e02.firstVertex() == he02_023.vertex();
-  heOrientArr[he02_024.getIndex()] = e02.firstVertex() == he02_024.vertex();
+  heOrientArr[he02_023.getIndex()] = (e02.firstVertex() == he02_023.vertex());
+  heOrientArr[he02_024.getIndex()] = (e02.firstVertex() == he02_024.vertex());
 
   heOrientArr[he03_034.getIndex()] = true;
-  heOrientArr[he03_031.getIndex()] = e03.firstVertex() == he03_031.vertex();
-  heOrientArr[he03_032.getIndex()] = e03.firstVertex() == he03_032.vertex();
+  heOrientArr[he03_031.getIndex()] = (e03.firstVertex() == he03_031.vertex());
+  heOrientArr[he03_032.getIndex()] = (e03.firstVertex() == he03_032.vertex());
 
   heOrientArr[he04_041.getIndex()] = true;
-  heOrientArr[he04_042.getIndex()] = e04.firstVertex() == he04_042.vertex();
-  heOrientArr[he04_043.getIndex()] = e04.firstVertex() == he04_043.vertex();
+  heOrientArr[he04_042.getIndex()] = (e04.firstVertex() == he04_042.vertex());
+  heOrientArr[he04_043.getIndex()] = (e04.firstVertex() == he04_043.vertex());
 
   // - sibling relationships
   //    - inner ge's sibling rels
@@ -431,7 +433,6 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   }
   heSiblingArr[first_he.getIndex()] = bhe12.getIndex();
   heSiblingArr[bhe12.getIndex()] = second_he.getIndex();
-  
   //    13
   Halfedge he13_f132 = get_he_of_edge_on_face(bE13, f123),
            he13_f134 = get_he_of_edge_on_face(bE13, f134);
@@ -499,12 +500,14 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   heSiblingArr[bhe34.getIndex()] = second_he.getIndex();
   
   std::cout << "handling vertex in outs \n";
-  addToVertexLists(bhe12); addToVertexLists(bhe13); addToVertexLists(bhe14); addToVertexLists(bhe23); addToVertexLists(bhe24); addToVertexLists(bhe34);
+
+  addToVertexLists(bhe12); addToVertexLists(bhe13); addToVertexLists(bhe14); 
+  addToVertexLists(bhe23); addToVertexLists(bhe24); 
+  addToVertexLists(bhe34);
   addToVertexLists(he01_012); addToVertexLists(he01_013); addToVertexLists(he01_014);
   addToVertexLists(he02_021); addToVertexLists(he02_023); addToVertexLists(he02_024);
   addToVertexLists(he03_031); addToVertexLists(he03_032); addToVertexLists(he03_034);
   addToVertexLists(he04_041); addToVertexLists(he04_042); addToVertexLists(he04_043);
-
   return centerVert;
 }
 
