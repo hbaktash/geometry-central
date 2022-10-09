@@ -921,6 +921,8 @@ Vertex SurfaceMesh::raiseVertexOnFace(Face fIn){
     //                                                   boundaryHe.tailVertex().getIndex(), boundaryHe.tipVertex().getIndex());
   }
   vHalfedgeArr[centerVert.getIndex()] = trailingHalfedges[0].getIndex();
+  vHeInStartArr[centerVert.getIndex()] = INVALID_IND; // TODO this should have been true by default.
+  vHeOutStartArr[centerVert.getIndex()] = INVALID_IND;
   
   // initializeHalfedgeNeighbors();
   for (Face f: innerFaces){

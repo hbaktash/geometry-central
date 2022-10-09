@@ -99,11 +99,10 @@ inline std::vector<Face> Tet::adjFaces(){
   adjFs.reserve(4);
   for(Vertex v1: adjVs){
     std::vector<Vertex> triplet; // instead, we should have some set operations added to utils.
-    std::vector<Vertex> boring_solo_set{v1};
     triplet.reserve(3);
-    std::set_difference(adjVs.begin(), adjVs.end(),  // fancy diff
-                        boring_solo_set.begin(), boring_solo_set.end(),
-                        std::inserter(triplet, triplet.begin()));
+    for(Vertex v : adjVs) 
+      if (v != v1) 
+        triplet.push_back(v);
     Face tmp_f = mesh->get_connecting_face(Vertex(triplet[0]), Vertex(triplet[1]), Vertex(triplet[2]));
     adjFs.push_back(tmp_f);
   }

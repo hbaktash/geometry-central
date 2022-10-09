@@ -514,7 +514,6 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
 void TetMesh::validateConnectivity(){
   // for the surface skeleton first (Thanks Nick!)
   SurfaceMesh::validateConnectivity();
-  
   // Tet stuff 
   for(Face f : faces()){
     bool found_it = false;
