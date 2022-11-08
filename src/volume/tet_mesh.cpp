@@ -148,6 +148,7 @@ Halfedge TetMesh::get_he_of_edge_on_face(Edge e, Face f){
     he = he.sibling();
     if(he == first_he) break;
   }
+  printf("he of e on f FAILED!\n");
   return Halfedge();
 }
 // helper fucntions 
@@ -429,11 +430,15 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   //    12
   Halfedge he12_f123 = get_he_of_edge_on_face(bE12, f123),
            he12_f124 = get_he_of_edge_on_face(bE12, f124);
-  if     (he12_f123.sibling() == he12_f124) {  first_he = he12_f123;  second_he = he12_f124;}
-  else if(he12_f124.sibling() == he12_f123) {  first_he = he12_f124;  second_he = he12_f123;}
+  if     (he12_f123.sibling() == he12_f124) {  first_he = he12_f123;  second_he = he12_f124; printf("here1\n");}
+  else if(he12_f124.sibling() == he12_f123) {  first_he = he12_f124;  second_he = he12_f123; printf("here2\n");}
   else{
+    printf("no fucking way!\n");
     std::logic_error(" --------- adj faces on a tet should be siblings ----------");
+    printf("no fucking way!\n");
   }
+  printf("  n he: %d , first_he: %d\n  he12_f123: %d, he12_f124: %d\n", nHalfedges(), first_he.getIndex(),
+                                       he12_f123.getIndex(), he12_f124.getIndex());
   heSiblingArr[first_he.getIndex()] = bhe12.getIndex();
   heSiblingArr[bhe12.getIndex()] = second_he.getIndex();
   //    13

@@ -18,26 +18,18 @@ inline std::vector<Tet> Face::adjacentTets() const{
   std::vector<size_t> adjTInds = tet_mesh->fAdjTs[getIndex()];
   std::vector<Tet> adjTs;
   adjTs.reserve(adjTInds.size());
-  printf("  *** tet neighs: %d\n", adjTInds.size());
-  for(size_t t_ind: adjTInds) adjTs.push_back(Tet(tet_mesh, t_ind));
+  for(size_t t_ind: adjTInds) 
+    adjTs.push_back(Tet(tet_mesh, t_ind));
   return adjTs;
 }
 
 //lazy Tet iterator for Vertex
 inline std::vector<Tet> Vertex::adjacentTets() const {
   std::unordered_set<Tet> adjTset;
-  printf("vertex ind %d\n", this->getIndex());
   for(Face f: adjacentFaces()){
-    printf(" --- adjF %d \n", f.getIndex());
-    for (Vertex v: f.adjacentVertices()){
-      printf("v %d, ", v.getIndex());
-    }
-    printf("\n");
     for(Tet t: f.adjacentTets()){
-      printf("  *** adjT: %d, ", t.getIndex());
       adjTset.insert(t);
     }
-    printf("\n");
   }
   std::vector<Tet> adjTs;
   // adjTs.reserve(adjTset.size());

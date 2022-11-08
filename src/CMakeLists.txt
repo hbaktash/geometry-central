@@ -19,6 +19,7 @@ SET(SRCS
   volume/surface_mesh_factories.cpp
   volume/manifold_surface_mesh.cpp
   volume/surface_mesh.cpp
+  volume/tet_mesh_mutation_manager.cpp
   volume/tet_mesh.cpp
   
   surface/surface_mesh.cpp
@@ -173,6 +174,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/volume/surface_mesh_factories.ipp
   ${INCLUDE_ROOT}/volume/surface_mesh.h
   ${INCLUDE_ROOT}/volume/surface_mesh.ipp
+  ${INCLUDE_ROOT}/volume/tet_mesh_mutation_manager.h
   ${INCLUDE_ROOT}/volume/tet_mesh.h
   ${INCLUDE_ROOT}/volume/tet_mesh.ipp
   ${INCLUDE_ROOT}/volume/vertex_position_geometry.h
