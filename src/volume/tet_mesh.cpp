@@ -77,9 +77,7 @@ TetMesh::TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_,
   nTetsCount = tet_v_inds_.size();
   nTetsCapacityCount = nTetsCount;
   nTetsFillCount = nTetsCount;
-  
-  tet_objects.reserve(nTetsCount);
-  
+    
   // tAdjVs = std::vector<std::vector<size_t>>(n_tets, {INVALID_IND});
   // fAdjTs = std::vector<std::vector<size_t>>(nFaces(), {INVALID_IND});
   tAdjVs.resize(nTetsCapacityCount);
@@ -107,7 +105,6 @@ TetMesh::TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_,
       fAdjTs[tmp_f.getIndex()].push_back(tet_ind);
     }
     // Tet object is ready to be pushed in. Was actually ready even before handling the elem.adjT iterators; anyway..
-    tet_objects.push_back(new_tet);
     tet_ind++;
   }
 }
@@ -430,15 +427,15 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   //    12
   Halfedge he12_f123 = get_he_of_edge_on_face(bE12, f123),
            he12_f124 = get_he_of_edge_on_face(bE12, f124);
-  if     (he12_f123.sibling() == he12_f124) {  first_he = he12_f123;  second_he = he12_f124; printf("here1\n");}
-  else if(he12_f124.sibling() == he12_f123) {  first_he = he12_f124;  second_he = he12_f123; printf("here2\n");}
-  else{
-    printf("no fucking way!\n");
-    std::logic_error(" --------- adj faces on a tet should be siblings ----------");
-    printf("no fucking way!\n");
+  if     (he12_f123.sibling() == he12_f124) {  first_he = he12_f123;  second_he = he12_f124;}
+  else if(he12_f124.sibling() == he12_f123) {  first_he = he12_f124;  second_he = he12_f123;}
+  else {
+    if (siblings_are_ordered) throw std::logic_error(" --------- adj faces on a tet should be siblings ----------");
+    else{
+      first_he = he12_f123; // random choice; order doesn't matter
+      second_he = first_he.sibling(); 
+    }
   }
-  printf("  n he: %d , first_he: %d\n  he12_f123: %d, he12_f124: %d\n", nHalfedges(), first_he.getIndex(),
-                                       he12_f123.getIndex(), he12_f124.getIndex());
   heSiblingArr[first_he.getIndex()] = bhe12.getIndex();
   heSiblingArr[bhe12.getIndex()] = second_he.getIndex();
   //    13
@@ -447,7 +444,11 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   if     (he13_f132.sibling() == he13_f134) {  first_he = he13_f132;  second_he = he13_f134;}
   else if(he13_f134.sibling() == he13_f132) {  first_he = he13_f134;  second_he = he13_f132;}
   else{
-    std::logic_error(" --------- adj faces on a tet should be tailing he siblings ----------");
+    if (siblings_are_ordered) throw std::logic_error(" --------- adj faces on a tet should be siblings ----------");
+    else{
+      first_he = he13_f132; // random choice; order doesn't matter
+      second_he = first_he.sibling(); 
+    }
   }
   heSiblingArr[first_he.getIndex()] = bhe13.getIndex();
   heSiblingArr[bhe13.getIndex()] = second_he.getIndex();
@@ -457,7 +458,11 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   if     (he14_f142.sibling() == he14_f143) {  first_he = he14_f142;  second_he = he14_f143;}
   else if(he14_f143.sibling() == he14_f142) {  first_he = he14_f143;  second_he = he14_f142;}
   else{
-    std::logic_error(" --------- adj faces on a tet should be tailing he siblings ----------");
+    if (siblings_are_ordered) throw std::logic_error(" --------- adj faces on a tet should be siblings ----------");
+    else{
+      first_he = he14_f142; // random choice; order doesn't matter
+      second_he = first_he.sibling(); 
+    }
   }
   heSiblingArr[first_he.getIndex()] = bhe14.getIndex();
   heSiblingArr[bhe14.getIndex()] = second_he.getIndex();
@@ -482,7 +487,11 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   if     (he23_f231.sibling() == he23_f234) {  first_he = he23_f231;  second_he = he23_f234;}
   else if(he23_f234.sibling() == he23_f231) {  first_he = he23_f234;  second_he = he23_f231;}
   else{
-    std::logic_error(" --------- adj faces on a tet should be tailing he siblings ----------");
+    if (siblings_are_ordered) throw std::logic_error(" --------- adj faces on a tet should be siblings ----------");
+    else{
+      first_he = he23_f231; // random choice; order doesn't matter
+      second_he = first_he.sibling(); 
+    }
   }
   heSiblingArr[first_he.getIndex()] = bhe23.getIndex();
   heSiblingArr[bhe23.getIndex()] = second_he.getIndex();
@@ -492,7 +501,11 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   if     (he24_f241.sibling() == he24_f243) {  first_he = he24_f241;  second_he = he24_f243;}
   else if(he24_f243.sibling() == he24_f241) {  first_he = he24_f243;  second_he = he24_f241;}
   else{
-    std::logic_error(" --------- adj faces on a tet should be tailing he siblings ----------");
+    if (siblings_are_ordered) throw std::logic_error(" --------- adj faces on a tet should be siblings ----------");
+    else{
+      first_he = he24_f241; // random choice; order doesn't matter
+      second_he = first_he.sibling(); 
+    }
   }
   heSiblingArr[first_he.getIndex()] = bhe24.getIndex();
   heSiblingArr[bhe24.getIndex()] = second_he.getIndex();
@@ -502,7 +515,11 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   if     (he34_f341.sibling() == he34_f342) {  first_he = he34_f341;  second_he = he34_f342;}
   else if(he34_f342.sibling() == he34_f341) {  first_he = he34_f342;  second_he = he34_f341;}
   else{
-    std::logic_error(" --------- adj faces on a tet should be tailing he siblings ----------");
+    if (siblings_are_ordered) throw std::logic_error(" --------- adj faces on a tet should be siblings ----------");
+    else{
+      first_he = he34_f341; // random choice; order doesn't matter
+      second_he = first_he.sibling(); 
+    }
   }
   heSiblingArr[first_he.getIndex()] = bhe34.getIndex();
   heSiblingArr[bhe34.getIndex()] = second_he.getIndex();
@@ -529,7 +546,7 @@ void TetMesh::validateConnectivity(){
         if(tf == f) found_it = true;
       }
     }
-    if(!found_it) std::logic_error("face.tet did not have face in tet.faces!");
+    if(!found_it) throw std::logic_error("face.tet did not have face in tet.faces!");
   }
 }
 

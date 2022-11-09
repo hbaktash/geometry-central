@@ -45,11 +45,13 @@ public:
     ~TetMesh(){}
     
     // dirty iterators
-    std::vector<Tet> tet_objects;
-    // to be annihilated later
+    // to be removed later
     std::vector<std::vector<size_t>> fAdjTs;
     std::vector<std::vector<size_t>> tAdjVs;
     
+    //
+    bool siblings_are_ordered = false;
+
     // navigation helpers
     Face get_connecting_face(Vertex v1, Vertex v2, Vertex v3); // assuming we dont have non-manifold(?!) edges or duplicat(!?) or.. faces (3-manifold) ; generally we should return a vector<Face>.
     Tet get_connecting_tet(Vertex v1, Vertex v2, Vertex v3, Vertex v4); // assuming we dont have duplicate(?!) tets..; otherwise ..//..

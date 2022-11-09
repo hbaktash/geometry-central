@@ -124,7 +124,7 @@ inline size_t Tet::degree() const{
 
 // == Range iterators
 inline bool TetRangeF::elementOkay(const TetMesh& mesh, size_t ind) {
-  return !mesh.tet_objects[ind].isDead();
+  return mesh.tAdjVs[ind].size() < 4;
 }
 
 }
