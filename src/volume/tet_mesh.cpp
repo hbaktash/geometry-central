@@ -145,9 +145,21 @@ Halfedge TetMesh::get_he_of_edge_on_face(Edge e, Face f){
     he = he.sibling();
     if(he == first_he) break;
   }
-  printf("he of e on f FAILED!\n");
+  throw std::logic_error("get_he_of_edge_on_face:he of e on f FAILED!"); // throwing a logic error for now; debugging purposes
   return Halfedge();
 }
+
+Tet TetMesh::next_tet_along_face(Tet t, Face f){
+  if (face_is_boundary(f)) return Tet();
+  for (Tet adjT: f.adjacentTets()){
+    if (adjT != t){
+      return adjT;
+    }
+  }
+  throw std::logic_error("next_tet_along_face: The face is probably not on the input tet!"); // throwing a logic error for now; debugging purposes
+  return Tet();
+}
+    
 // helper fucntions 
 std::vector<std::vector<size_t>> triangles_from_tets(std::vector<std::vector<size_t>> tets_){
     // just adding tet faces. Will compress later

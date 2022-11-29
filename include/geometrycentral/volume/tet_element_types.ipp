@@ -111,7 +111,9 @@ inline std::vector<Face> Tet::adjFaces(){
 }
   
 inline bool Tet::isDead() const {
-  return mesh->tAdjVs[getIndex()].size() < 4; // hmm, not really sure for now.
+  if (getIndex() == INVALID_IND) 
+      return true;
+  return mesh->tAdjVs[getIndex()].size() < 4; // hmm, not really sure about the tombstone for now.
 }
 
 // Properties
