@@ -92,19 +92,16 @@ TetMesh::TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_,
     new_tet.buildAdjVertices(tet_v_inds);
     
     // populating the lazy/dirty to-Tet iterators on Faces. Vertices/Edges will use these later.
-    for(size_t v_ind:tet_v_inds){
+    for(size_t v_ind: tet_v_inds){
       // TODO: should encapsulate these set operations in utils. ASAP
       std::vector<size_t> triplet; // instead, we should have some set operations added to utils.
-      std::vector<size_t> boring_solo_set{v_ind};
-      triplet.reserve(3);
-      std::set_difference(tet_v_inds.begin(), tet_v_inds.end(),  // fancy diff
-                          boring_solo_set.begin(), boring_solo_set.end(),
-                          std::inserter(triplet, triplet.begin()));
+      for(size_t other_v_ind: tet_v_inds) if (other_v_ind != v_ind) triplet.push_back(other_v_ind);
       Face tmp_f = get_connecting_face(Vertex(this, triplet[0]), Vertex(this,triplet[1]), Vertex(this,triplet[2]));
-
+      if (tet_ind == 46 && tmp_f.getIndex() == 73){
+        printf("tet %d and face %d\n", tet_ind, tmp_f.getIndex());
+      }
       fAdjTs[tmp_f.getIndex()].push_back(tet_ind);
     }
-    // Tet object is ready to be pushed in. Was actually ready even before handling the elem.adjT iterators; anyway..
     tet_ind++;
   }
 }
@@ -145,21 +142,114 @@ Halfedge TetMesh::get_he_of_edge_on_face(Edge e, Face f){
     he = he.sibling();
     if(he == first_he) break;
   }
+  printf("face %d\n", f.getIndex());
+  for (Vertex v: f.adjacentVertices()) printf(" - v %d\n", v.getIndex());
+  printf("edge %d\n", e.getIndex());
+  for (Vertex v: e.adjacentVertices()) printf(" - v %d\n", v.getIndex());
   throw std::logic_error("get_he_of_edge_on_face:he of e on f FAILED!"); // throwing a logic error for now; debugging purposes
   return Halfedge();
 }
 
+
+Edge TetMesh::common_edge_of_faces(Face f1, Face f2){
+  for (Halfedge he1: f1.adjacentHalfedges()){
+    for (Halfedge he2: f2.adjacentHalfedges()){
+      if (he1.edge() == he2.edge())
+        return he1.edge();
+    }
+  }
+  return Edge();
+}
+
+
+
 Tet TetMesh::next_tet_along_face(Tet t, Face f){
   if (face_is_boundary(f)) return Tet();
   for (Tet adjT: f.adjacentTets()){
+    printf("face %d got adjt %d\n", f.getIndex(), t.getIndex());
     if (adjT != t){
       return adjT;
     }
   }
+  printf("Tet\n");
+  for (Vertex v: t.adjVertices()) printf("  -- v %d\n", v.getIndex());
+  printf("Face %d\n", f.getIndex());
+  for (Vertex v: f.adjacentVertices()) printf("  -- v %d\n", v.getIndex());
   throw std::logic_error("next_tet_along_face: The face is probably not on the input tet!"); // throwing a logic error for now; debugging purposes
   return Tet();
 }
+
+// to have faces on the same tet be siblings; like iterating over siblings without the sibling assignemnts
+void TetMesh::order_siblings_of_edge(Edge e){
+  // finding a boundary he -> face
+  Halfedge first_he = e.halfedge(), he = e.halfedge();
+  Halfedge boundary_he = Halfedge();
+  while (true) {
+    if (face_is_boundary(he.face())) {
+      boundary_he = he;
+      break;
+    }
+    he = he.sibling();
+    if (he == first_he) break;
+  }
+
+  // select starting tet and face (for direction or iteration)
+  Halfedge current_he = e.halfedge();
+  Tet current_tet = e.halfedge().face().adjacentTets()[0];
+  Face current_face = e.halfedge().face();
+  if (boundary_he.getIndex() != INVALID_IND){ // we have boundary
+    current_he = boundary_he;
+    current_face = boundary_he.face();
+    current_tet = boundary_he.face().adjacentTets()[0]; // should have exactly one element
+    // make sure we start at boundary when iterating over adj He's; TODO is this where it starts?
+    eHalfedgeArr[e.getIndex()] = current_he.getIndex();
+  }
+  // re-arrange siblings; by iterating over neighboring tets using 
+  Face next_face;
+  first_he = current_he; // for the final hook-up
+  printf("sorting siblings of edge %d vs: %d, %d\n", e.getIndex(), e.firstVertex().getIndex(), e.secondVertex().getIndex());
+  printf("and is it boundary? %d\n", boundary_he.getIndex());
+  while (true) {  // each iteration needs: current_tet, current_he -> current_face 
+    printf("current face: %d\n", current_face.getIndex());
+    for (Vertex v: current_face.adjacentVertices()) printf(" -- adjV %d\n", v.getIndex());
+    // getting next face
+    Vertex otherV; // other vertex of current_tet, not in current_face
+    std::vector<Vertex> cFVs; // current_face vertices
+    for (Vertex cFV: current_he.face().adjacentVertices()) cFVs.push_back(cFV);
+    printf("current tet: %d\n", current_tet.getIndex());
+    for (Vertex tV: current_tet.adjVertices()) {
+      printf("  -- adjV %d\n", tV.getIndex());
+      if (tV != cFVs[0] && tV != cFVs[1] && tV != cFVs[2]) {
+        otherV = tV;
+        printf("other v: %d   ---  cfVs: %d, %d, %d \n", otherV.getIndex(), cFVs[0].getIndex(), cFVs[1].getIndex(), cFVs[2].getIndex());
+      }
+    }
+    next_face = get_connecting_face(e.firstVertex(), e.secondVertex(), otherV);
+    Halfedge next_he = get_he_of_edge_on_face(e, next_face);
     
+    // next halfedge goes here
+    heSiblingArr[current_he.getIndex()] = next_he.getIndex();
+    
+    // update current tet and face
+    current_tet = next_tet_along_face(current_tet, next_face);
+    current_face = next_face;
+    current_he = next_he;
+
+    // terminate if on boundary
+    if (current_tet.getIndex() == INVALID_IND){
+      heSiblingArr[current_he.getIndex()] = first_he.getIndex();
+      break;
+    }
+  }
+}
+
+void TetMesh::order_all_siblings(){
+  for (Edge e: edges()){
+    order_siblings_of_edge(e);
+  }
+  siblings_are_ordered = true;
+}
+
 // helper fucntions 
 std::vector<std::vector<size_t>> triangles_from_tets(std::vector<std::vector<size_t>> tets_){
     // just adding tet faces. Will compress later
@@ -553,12 +643,31 @@ void TetMesh::validateConnectivity(){
   // Tet stuff 
   for(Face f : faces()){
     bool found_it = false;
+    if (f.adjacentTets().size() > 2) throw std::logic_error("validateConnectivity: Face has more than 2 tets!");
     for(Tet t : f.adjacentTets()){
       for(Face tf: t.adjFaces()){
         if(tf == f) found_it = true;
       }
     }
     if(!found_it) throw std::logic_error("face.tet did not have face in tet.faces!");
+  }
+
+  if (siblings_are_ordered){
+    for (Tet t: tets()){
+      for (Face f1: t.adjFaces()){
+        for (Face f2: t.adjFaces()){
+          if (f1 < f2){
+            Edge common_edge = common_edge_of_faces(f1, f2);
+            Halfedge he1 = get_he_of_edge_on_face(common_edge, f1),
+                     he2 = get_he_of_edge_on_face(common_edge, f2);
+            if (he1.sibling() != he2 && he2.sibling() != he1){
+              printf("face %d and %d are supposed to be siblings on edge %d\n", f1.getIndex(), f2.getIndex(), common_edge.getIndex());
+              throw std::logic_error("Siblings are not ordered! :(\n");
+            }
+          }
+        }
+      }
+    }
   }
 }
 
