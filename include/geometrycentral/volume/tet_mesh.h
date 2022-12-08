@@ -49,25 +49,38 @@ public:
     std::vector<std::vector<size_t>> fAdjTs;
     std::vector<std::vector<size_t>> tAdjVs;
     
-    //
+    // halfedges of faces on the same tet, should be siblings
     bool siblings_are_ordered = false;
 
-    // navigation helpers
+    // navigation helpers; all can be integrated as mesh element operators
     Face get_connecting_face(Vertex v1, Vertex v2, Vertex v3); // assuming we dont have non-manifold(?!) edges or duplicat(!?) or.. faces (3-manifold) ; generally we should return a vector<Face>.
     Tet get_connecting_tet(Vertex v1, Vertex v2, Vertex v3, Vertex v4); // assuming we dont have duplicate(?!) tets..; otherwise ..//..
     Halfedge get_he_of_edge_on_face(Edge e, Face f);
+    Edge common_edge_of_faces(Face f1, Face f2);
+    Halfedge boundary_he_of_edge(Edge e); // Halfedge() if not exists
+    
+    // added for sibling ordering
+    bool face_is_boundary(Face f);
+    Tet next_tet_along_face(Tet t, Face f);
+    
+    // to have faces on the same tet be siblings
+    void order_siblings_of_edge(Edge e);
+    void order_all_siblings();
+
     // Range-based loops
     TetSet tets();
     
     // mesh resize routines
     Tet getNewTet();
-    //
+
     // compression 
     void compressTets();
+
     // mutation routines; should be added to mutation_manager later?
     Vertex buildVolOnFace(Face fIn);
     Vertex splitTet(Tet tIn);
-    
+    Vertex splitEdge(Edge e);
+
     // Expanding Callbacks
     std::list<std::function<void(size_t)>> tetExpandCallbackList;
     // Compression callbacks

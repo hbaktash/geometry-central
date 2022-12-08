@@ -135,11 +135,11 @@ Tet TetMesh::get_connecting_tet(Vertex v1, Vertex v2, Vertex v3, Vertex v4){
 }
 
 Halfedge TetMesh::get_he_of_edge_on_face(Edge e, Face f){
-  Halfedge he = e.halfedge();
+  Halfedge he = f.halfedge();
   Halfedge first_he = he;
   while(true) {
-    if(he.face() == f) return he;
-    he = he.sibling();
+    if(he.edge() == e) return he;
+    he = he.next();
     if(he == first_he) break;
   }
   printf("face %d\n", f.getIndex());
@@ -166,7 +166,6 @@ Edge TetMesh::common_edge_of_faces(Face f1, Face f2){
 Tet TetMesh::next_tet_along_face(Tet t, Face f){
   if (face_is_boundary(f)) return Tet();
   for (Tet adjT: f.adjacentTets()){
-    printf("face %d got adjt %d\n", f.getIndex(), t.getIndex());
     if (adjT != t){
       return adjT;
     }
@@ -179,8 +178,8 @@ Tet TetMesh::next_tet_along_face(Tet t, Face f){
   return Tet();
 }
 
-// to have faces on the same tet be siblings; like iterating over siblings without the sibling assignemnts
-void TetMesh::order_siblings_of_edge(Edge e){
+
+Halfedge TetMesh::boundary_he_of_edge(Edge e){
   // finding a boundary he -> face
   Halfedge first_he = e.halfedge(), he = e.halfedge();
   Halfedge boundary_he = Halfedge();
@@ -192,54 +191,50 @@ void TetMesh::order_siblings_of_edge(Edge e){
     he = he.sibling();
     if (he == first_he) break;
   }
+  return boundary_he;
+}
+
+
+// to have faces on the same tet be siblings; like iterating over siblings without the sibling assignemnts
+void TetMesh::order_siblings_of_edge(Edge e){
+  // finding a boundary he -> face
+  Halfedge boundary_he = boundary_he_of_edge(e);
 
   // select starting tet and face (for direction or iteration)
   Halfedge current_he = e.halfedge();
   Tet current_tet = e.halfedge().face().adjacentTets()[0];
-  Face current_face = e.halfedge().face();
+  Face current_face = e.halfedge().face(); 
   if (boundary_he.getIndex() != INVALID_IND){ // we have boundary
     current_he = boundary_he;
     current_face = boundary_he.face();
     current_tet = boundary_he.face().adjacentTets()[0]; // should have exactly one element
-    // make sure we start at boundary when iterating over adj He's; TODO is this where it starts?
-    eHalfedgeArr[e.getIndex()] = current_he.getIndex();
   }
   // re-arrange siblings; by iterating over neighboring tets using 
   Face next_face;
-  first_he = current_he; // for the final hook-up
-  printf("sorting siblings of edge %d vs: %d, %d\n", e.getIndex(), e.firstVertex().getIndex(), e.secondVertex().getIndex());
-  printf("and is it boundary? %d\n", boundary_he.getIndex());
+  Halfedge first_he = current_he; // for the final hook-up / termination
+  // save ordered siblings for later hookup
   while (true) {  // each iteration needs: current_tet, current_he -> current_face 
-    printf("current face: %d\n", current_face.getIndex());
-    for (Vertex v: current_face.adjacentVertices()) printf(" -- adjV %d\n", v.getIndex());
     // getting next face
     Vertex otherV; // other vertex of current_tet, not in current_face
     std::vector<Vertex> cFVs; // current_face vertices
     for (Vertex cFV: current_he.face().adjacentVertices()) cFVs.push_back(cFV);
-    printf("current tet: %d\n", current_tet.getIndex());
-    for (Vertex tV: current_tet.adjVertices()) {
-      printf("  -- adjV %d\n", tV.getIndex());
-      if (tV != cFVs[0] && tV != cFVs[1] && tV != cFVs[2]) {
-        otherV = tV;
-        printf("other v: %d   ---  cfVs: %d, %d, %d \n", otherV.getIndex(), cFVs[0].getIndex(), cFVs[1].getIndex(), cFVs[2].getIndex());
-      }
-    }
-    next_face = get_connecting_face(e.firstVertex(), e.secondVertex(), otherV);
+    for (Vertex tV: current_tet.adjVertices()) if (tV != cFVs[0] && tV != cFVs[1] && tV != cFVs[2]) otherV = tV;
+    // printf("other v: %d   ---  cfVs: %d, %d, %d \n", otherV.getIndex(), cFVs[0].getIndex(), cFVs[1].getIndex(), cFVs[2].getIndex());
+    next_face = get_connecting_face(otherV, e.firstVertex(), e.secondVertex()); // sorry but other V should be first, since we are disrupting siblings
     Halfedge next_he = get_he_of_edge_on_face(e, next_face);
-    
     // next halfedge goes here
     heSiblingArr[current_he.getIndex()] = next_he.getIndex();
-    
     // update current tet and face
     current_tet = next_tet_along_face(current_tet, next_face);
     current_face = next_face;
     current_he = next_he;
-
     // terminate if on boundary
     if (current_tet.getIndex() == INVALID_IND){
       heSiblingArr[current_he.getIndex()] = first_he.getIndex();
       break;
     }
+    // terminate if the loop is complete
+    if (current_he == first_he) break;
   }
 }
 
@@ -382,6 +377,7 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   // ======= hooking up elements ======= (may some god forgive me)
   // first for higher level stuff 
   // face -> tet
+  
   fAdjTs.resize(nFacesFillCount + 4);
   for(int i = 0 ; i < fAdjTs[f123.getIndex()].size() ; i++){
     if(fAdjTs[f123.getIndex()][i] == tIn.getIndex()) fAdjTs[f123.getIndex()][i] = t0123.getIndex(); 
@@ -635,6 +631,10 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   addToVertexLists(he03_031); addToVertexLists(he03_032); addToVertexLists(he03_034);
   addToVertexLists(he04_041); addToVertexLists(he04_042); addToVertexLists(he04_043);
   return centerVert;
+}
+
+Vertex TetMesh::splitEdge(Edge e){
+
 }
 
 void TetMesh::validateConnectivity(){
