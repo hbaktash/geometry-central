@@ -212,7 +212,6 @@ void TetMesh::order_siblings_of_edge(Edge e){
   // re-arrange siblings; by iterating over neighboring tets using 
   Face next_face;
   Halfedge first_he = current_he; // for the final hook-up / termination
-  // save ordered siblings for later hookup
   while (true) {  // each iteration needs: current_tet, current_he -> current_face 
     // getting next face
     Vertex otherV; // other vertex of current_tet, not in current_face
@@ -244,6 +243,45 @@ void TetMesh::order_all_siblings(){
   }
   siblings_are_ordered = true;
 }
+
+
+Vertex TetMesh::splitEdge(Edge e){
+  // start from a boundary halfedge (h->face is boundary)
+  Halfedge boundary_he = boundary_he_of_edge(e);
+  bool have_boundary = boundary_he.getIndex() != INVALID_IND;
+  Halfedge first_he = have_boundary ? boundary_he : e.halfedge();
+  // the new vertex
+  Vertex new_v = getNewVertex();
+
+  std::vector<Tet> upper_tets, // shadow current tets
+                   lower_tets; // new
+  std::vector<Face> bisecting_faces; // 1 per tet
+  // this are behind the tets during iteration
+  std::vector<Face> upper_faces, // shadow current faces
+                    lower_faces; // new
+  std::vector<Halfedge> upper_pilar_hes, // shadow current faces
+                        lower_pilar_hes; // new
+  std::vector<Edge> biseecting_edges; // new
+  std::vector<Halfedge> upper_bisecting_hes, // new
+                        lower_bisecting_hes; // new
+
+  Halfedge first_he = boundary_he,
+           current_he = boundary_he,
+           sib_he = boundary_he.sibling();
+  Face current_face = current_he.face(),
+       sib_face  = sib_he.face();
+  Tet current_tet = get_connecting_tet(current_he.tipVertex(), current_he.tailVertex(), current_he.next().tipVertex(), sib_he.next().tipVertex()); 
+  // iterate till next boundary; or till we loop back
+  while (true) {
+    if (!face_is_boundary(current_face) || sib_he != first_he){ // #tet = #face - 1; if we have boundary
+      Tet new_tet = getNewTet();
+      lower_tets.push_back(new_tet);
+      upper_tets.push_back(current_tet);
+    }
+    Face new_face
+  }
+}
+
 
 // helper fucntions 
 std::vector<std::vector<size_t>> triangles_from_tets(std::vector<std::vector<size_t>> tets_){
@@ -633,9 +671,6 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   return centerVert;
 }
 
-Vertex TetMesh::splitEdge(Edge e){
-
-}
 
 void TetMesh::validateConnectivity(){
   // for the surface skeleton first (Thanks Nick!)
