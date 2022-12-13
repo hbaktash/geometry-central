@@ -245,7 +245,7 @@ void TetMesh::order_all_siblings(){
 }
 
 
-Vertex TetMesh::splitEdge(Edge e){
+Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity
   // start from a boundary halfedge (h->face is boundary)
   Halfedge boundary_he = boundary_he_of_edge(e);
   bool have_boundary = boundary_he.getIndex() != INVALID_IND;
@@ -255,31 +255,176 @@ Vertex TetMesh::splitEdge(Edge e){
 
   std::vector<Tet> upper_tets, // shadow current tets
                    lower_tets; // new
-  std::vector<Face> bisecting_faces; // 1 per tet
+  std::vector<Face> wedge_bisecting_faces; // 1 per tet
   // this are behind the tets during iteration
   std::vector<Face> upper_faces, // shadow current faces
                     lower_faces; // new
+  Edge upper_pilar_edge, // shadow current faces
+       lower_pilar_edge; // new
   std::vector<Halfedge> upper_pilar_hes, // shadow current faces
                         lower_pilar_hes; // new
-  std::vector<Edge> biseecting_edges; // new
+  std::vector<Edge> bisecting_edges; // new
   std::vector<Halfedge> upper_bisecting_hes, // new
-                        lower_bisecting_hes; // new
+                        lower_bisecting_hes, // new
+                        wedge_bisecting_hes_pre,
+                        wedge_bisecting_hes_pro; // new
+  std::vector<Edge> wedge_loop_edges; // old stuff
+  std::vector<Halfedge> wedge_loop_hes; // new
 
-  Halfedge first_he = boundary_he,
-           current_he = boundary_he,
-           sib_he = boundary_he.sibling();
+  Edge new_pilar_edge = getNewEdge();
+  lower_pilar_edge = new_pilar_edge;
+  upper_pilar_edge = e;
+
+  Halfedge current_he = first_he,
+           sib_he = first_he.sibling();
   Face current_face = current_he.face(),
        sib_face  = sib_he.face();
   Tet current_tet = get_connecting_tet(current_he.tipVertex(), current_he.tailVertex(), current_he.next().tipVertex(), sib_he.next().tipVertex()); 
   // iterate till next boundary; or till we loop back
+  size_t nSibs = 0;
   while (true) {
+    nSibs++;
     if (!face_is_boundary(current_face) || sib_he != first_he){ // #tet = #face - 1; if we have boundary
       Tet new_tet = getNewTet();
       lower_tets.push_back(new_tet);
       upper_tets.push_back(current_tet);
+      Face wedge_face = getNewFace();
+      wedge_bisecting_faces.push_back(wedge_face);
+      Vertex v1 = current_he.next().tipVertex(), 
+             v2 = sib_he.next().tipVertex();
+      wedge_loop_edges.push_back(connectingEdge(v1, v2));
+      Halfedge wedge_loop_he = getNewHalfedge(true);
+      wedge_loop_hes.push_back(wedge_loop_he);
+      Halfedge wedge_bisecting_he_pre = getNewHalfedge(true),
+               wedge_bisecting_he_pro = getNewHalfedge(true);
+      wedge_bisecting_hes_pre.push_back(wedge_bisecting_he_pre);
+      wedge_bisecting_hes_pro.push_back(wedge_bisecting_he_pro);
     }
-    Face new_face
+    Face new_face = getNewFace();
+    lower_faces.push_back(new_face);
+    upper_faces.push_back(current_face);
+
+    Halfedge new_pilar_he = getNewHalfedge(true);
+    lower_pilar_hes.push_back(new_pilar_he);
+    upper_pilar_hes.push_back(current_he);
+
+    Edge bisecting_edge = getNewEdge();
+    bisecting_edges.push_back(bisecting_edge);
+
+    Halfedge upper_bisecting_he = getNewHalfedge(true), lower_bisecting_he = getNewHalfedge(true);
+    upper_bisecting_hes.push_back(upper_bisecting_he);
+    lower_bisecting_hes.push_back(lower_bisecting_he);
+
+    if (sib_he == first_he) break;
+    current_he = sib_he;
+    sib_he = current_he.sibling();
+    current_face = current_he.face();
+    sib_face = sib_he.face();
+    current_tet = get_connecting_tet(current_he.tipVertex(), current_he.tailVertex(), current_he.next().tipVertex(), sib_he.next().tipVertex());
   }
+  
+  // hook-up pointers
+  Vertex v1 = e.firstVertex(), v2 = e.secondVertex();  // will select v2 as upper!
+  // vertex -> he ; just for center
+  vHalfedgeArr[new_v.getIndex()] = upper_pilar_hes[0].getIndex();
+  vHeOutStartArr[new_v.getIndex()] = INVALID_IND; // will be handled later; TODO this should hold by default.
+  vHeInStartArr[new_v.getIndex()] = INVALID_IND; // will be handled later; TODO this should hold by default.
+  // edge -> halfedge ; just for the lower edge
+  //   ** upper is already fine
+  eHalfedgeArr[lower_pilar_edge.getIndex()] = lower_pilar_hes[0].getIndex();
+  for (size_t i = 0; i < nSibs; i++) {
+    Halfedge old_current_he = upper_pilar_hes[i],
+             old_sib_he = upper_pilar_hes[(i + 1) % nSibs];
+    
+    // tet related stuff; and wedge faces
+    if (!have_boundary || i < nSibs - 1){
+      // tet -> vertex
+      tAdjVs[upper_tets[i].getIndex()] = {v2.getIndex(), new_v.getIndex(), old_current_he.next().tipVertex().getIndex(), old_sib_he.next().tipVertex().getIndex()};
+      tAdjVs[lower_tets[i].getIndex()] = {v1.getIndex(), new_v.getIndex(), old_current_he.next().tipVertex().getIndex(), old_sib_he.next().tipVertex().getIndex()};
+      // face -> tet
+      //  ** upper faces are done already
+      Face tmp_lower_face = lower_faces[i],
+           tmp_next_lower_face = lower_faces[(i + 1) % nSibs];
+      fAdjTs[tmp_lower_face.getIndex()].push_back(lower_tets[i].getIndex());
+      fAdjTs[tmp_next_lower_face.getIndex()].push_back(lower_tets[i].getIndex());
+      Face wedge_bisecting_face = wedge_bisecting_faces[i];
+      fAdjTs[wedge_bisecting_face.getIndex()] = {upper_tets[i].getIndex(), lower_tets[i].getIndex()};
+      // face -> halfedge ; wedge bisectors
+      fHalfedgeArr[wedge_bisecting_face.getIndex()] = wedge_loop_hes[i].getIndex();
+      // he -> edge ; wedge loop stuff
+      heEdgeArr[wedge_loop_hes[i].getIndex()] = wedge_loop_edges[i].getIndex();
+      heEdgeArr[wedge_bisecting_hes_pre[i].getIndex()] = bisecting_edges[i].getIndex();
+      heEdgeArr[wedge_bisecting_hes_pro[i].getIndex()] = bisecting_edges[(i + 1) % nSibs].getIndex();
+      // he -> face ; wedge faces
+      heFaceArr[wedge_loop_hes[i].getIndex()] = wedge_bisecting_face.getIndex();
+      heFaceArr[wedge_bisecting_hes_pre[i].getIndex()] = wedge_bisecting_face.getIndex();
+      heFaceArr[wedge_bisecting_hes_pro[i].getIndex()] = wedge_bisecting_face.getIndex();
+      // he -> vertex  &&  he -> next
+      //  -- traversing the wedge bisecting face
+      Vertex pre_v = old_current_he.next().tipVertex(),
+             pro_v = old_sib_he.next().tipVertex();
+      heVertexArr[wedge_loop_hes[i].getIndex()] = pre_v.getIndex();
+      heNextArr[wedge_loop_hes[i].getIndex()] = wedge_bisecting_hes_pro[i].getIndex();
+      heVertexArr[wedge_bisecting_hes_pro[i].getIndex()] = pro_v.getIndex();
+      heNextArr[wedge_bisecting_hes_pro[i].getIndex()] = wedge_bisecting_hes_pre[i].getIndex();
+      heVertexArr[wedge_bisecting_hes_pre[i].getIndex()] = new_v.getIndex();
+      heNextArr[wedge_bisecting_hes_pre[i].getIndex()] = wedge_loop_hes[i].getIndex();
+    }
+    // face -> halfedge ; pillars
+    fHalfedgeArr[upper_faces[i].getIndex()] = upper_pilar_hes[i].getIndex();
+    fHalfedgeArr[lower_faces[i].getIndex()] = lower_pilar_hes[i].getIndex();
+    // edge -> halfedge ; bisectors
+    eHalfedgeArr[bisecting_edges[i].getIndex()] = upper_bisecting_hes[i].getIndex();
+    // he -> edge ; on-face stuff
+    //  ** upper is fine
+    heEdgeArr[lower_pilar_hes[i].getIndex()] = lower_pilar_edge.getIndex();
+    heEdgeArr[upper_bisecting_hes[i].getIndex()] = bisecting_edges[i].getIndex();
+    heEdgeArr[lower_bisecting_hes[i].getIndex()] = bisecting_edges[i].getIndex();
+    // he -> face ; bisected sub-faces
+    //  ** upper is fine
+    heFaceArr[lower_pilar_hes[i].getIndex()] = lower_faces[i].getIndex();
+    heFaceArr[upper_bisecting_hes[i].getIndex()] = upper_faces[i].getIndex();
+    heFaceArr[lower_bisecting_hes[i].getIndex()] = lower_faces[i].getIndex();
+    // he -> vertex  &&  he -> next
+    //  -- pillars modification
+    Halfedge next_he = upper_pilar_hes[i].next(),
+             prev_he = upper_pilar_hes[i].next(),
+             upper_he = upper_pilar_hes[i],
+             lower_he = lower_pilar_hes[i];
+    Vertex wing_v = next_he.tipVertex();
+    if (upper_he.tipVertex() == v2){
+      // upper face
+      heVertexArr[upper_he.getIndex()] = new_v.getIndex();
+      heVertexArr[upper_bisecting_hes[i].getIndex()] = wing_v.getIndex();
+      heNextArr[next_he.getIndex()] = upper_bisecting_hes[i].getIndex();
+      heNextArr[upper_bisecting_hes[i].getIndex()] = upper_he.getIndex();
+      // lower face
+      heVertexArr[lower_bisecting_hes[i].getIndex()] = new_v.getIndex();
+      heVertexArr[lower_he.getIndex()] = v1.getIndex();
+      heNextArr[prev_he.getIndex()] = lower_he.getIndex();
+      heNextArr[lower_he.getIndex()] = lower_bisecting_hes[i].getIndex();
+      heNextArr[lower_bisecting_hes[i].getIndex()] = prev_he.getIndex(); 
+    }
+    else if (upper_he.tipVertex() == v1){
+      // upper face
+      heVertexArr[upper_bisecting_hes[i].getIndex()] = new_v.getIndex();
+      heNextArr[upper_he.getIndex()] = upper_bisecting_hes[i].getIndex();
+      heNextArr[upper_bisecting_hes[i].getIndex()] = prev_he.getIndex();
+      // lower face
+      heVertexArr[lower_he.getIndex()] = new_v.getIndex();
+      heVertexArr[lower_bisecting_hes[i].getIndex()] = wing_v.getIndex();
+      heNextArr[lower_he.getIndex()] = next_he.getIndex();
+      heNextArr[next_he.getIndex()] = lower_bisecting_hes[i].getIndex();
+      heNextArr[lower_bisecting_hes[i].getIndex()] = lower_he.getIndex();
+    }
+    else throw std::logic_error("upper edge should have either v1 or v2 on the tip!");
+
+    //
+  }
+  
+  // - orientation of all he
+  // - sibling relationships
+  // addToVertexLists(some he)
 }
 
 
@@ -308,6 +453,12 @@ std::vector<std::vector<size_t>> triangles_from_tets(std::vector<std::vector<siz
 }
 
 // mesh resize routines
+Face TetMesh::getNewFace(){
+  Face new_face = SurfaceMesh::getNewFace();
+  fAdjTs.resize(nFacesCount, {});
+  return new_face;
+}
+
 Tet TetMesh::getNewTet(){
   if (nTetsFillCount < nTetsCapacityCount) {
     // No work needed
@@ -414,9 +565,9 @@ Vertex TetMesh::splitTet(Tet tIn){ // An implementation I will go to hell for..
   Edge e01 = getNewEdge(), e02 = getNewEdge(), e03 = getNewEdge(), e04 = getNewEdge();
   // ======= hooking up elements ======= (may some god forgive me)
   // first for higher level stuff 
-  // face -> tet
   
-  fAdjTs.resize(nFacesFillCount + 4);
+  // face -> tet
+  // fAdjTs.resize(nFacesFillCount + 6);
   for(int i = 0 ; i < fAdjTs[f123.getIndex()].size() ; i++){
     if(fAdjTs[f123.getIndex()][i] == tIn.getIndex()) fAdjTs[f123.getIndex()][i] = t0123.getIndex(); 
   }
