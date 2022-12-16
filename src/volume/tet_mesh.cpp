@@ -324,7 +324,13 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity
   }
   
   // hook-up pointers
+
   Vertex v1 = e.firstVertex(), v2 = e.secondVertex();  // will select v2 as upper!
+  
+  // DEBUG
+  printf("Spliting Edge %d v1, v2:(%d, %d):\n", e.getIndex(), v1.getIndex(), v2.getIndex());
+  printf("New vertex: %d:\n", new_v.getIndex());
+  
   // vertex -> he ; just for center
   vHalfedgeArr[new_v.getIndex()] = upper_pilar_hes[0].getIndex();
   vHeOutStartArr[new_v.getIndex()] = INVALID_IND; // will be handled later; TODO this should hold by default.
@@ -337,7 +343,8 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity
              old_sib_he = upper_pilar_hes[(i + 1) % nSibs];
     
     // tet related stuff; and wedge faces
-    if (!have_boundary || i < nSibs - 1){
+    bool wedge_condition = (!have_boundary || i < nSibs - 1);
+    if (wedge_condition){
       // tet -> vertex
       tAdjVs[upper_tets[i].getIndex()] = {v2.getIndex(), new_v.getIndex(), old_current_he.next().tipVertex().getIndex(), old_sib_he.next().tipVertex().getIndex()};
       tAdjVs[lower_tets[i].getIndex()] = {v1.getIndex(), new_v.getIndex(), old_current_he.next().tipVertex().getIndex(), old_sib_he.next().tipVertex().getIndex()};
@@ -369,6 +376,46 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity
       heNextArr[wedge_bisecting_hes_pro[i].getIndex()] = wedge_bisecting_hes_pre[i].getIndex();
       heVertexArr[wedge_bisecting_hes_pre[i].getIndex()] = new_v.getIndex();
       heNextArr[wedge_bisecting_hes_pre[i].getIndex()] = wedge_loop_hes[i].getIndex();
+      
+      // siblings ; for the wedge face
+      heSiblingArr[lower_bisecting_hes[(i + 1) % nSibs].getIndex()] = wedge_bisecting_hes_pro[i].getIndex(); 
+      heSiblingArr[wedge_bisecting_hes_pro[i].getIndex()] = upper_bisecting_hes[(i + 1) % nSibs].getIndex();
+      if (i == nSibs - 2 && have_boundary) heSiblingArr[upper_bisecting_hes[(i + 1) % nSibs].getIndex()] = lower_bisecting_hes[(i + 1) % nSibs].getIndex();
+      
+      heSiblingArr[upper_bisecting_hes[i].getIndex()] = wedge_bisecting_hes_pre[i].getIndex(); 
+      heSiblingArr[wedge_bisecting_hes_pre[i].getIndex()] = lower_bisecting_hes[i].getIndex();
+      if (i == 0 && have_boundary) heSiblingArr[lower_bisecting_hes[(i + 1) % nSibs].getIndex()] = upper_bisecting_hes[(i + 1) % nSibs].getIndex();
+
+      //     front  edge (wedge loop)
+      Face upper_front_face = get_connecting_face(v2, pre_v, pro_v),
+           lower_front_face = get_connecting_face(v1, pre_v, pro_v);
+      if (lower_front_face.getIndex() == INVALID_IND || upper_front_face.getIndex() == INVALID_IND)
+        throw std::logic_error("SplitEdge: lower and upper faces should exist!");
+      Halfedge upper_front_he = get_he_of_edge_on_face(connectingEdge(pre_v, pro_v), upper_front_face),
+               lower_front_he = get_he_of_edge_on_face(connectingEdge(pre_v, pro_v), lower_front_face);
+      Halfedge he1, he2;
+      if (siblings_are_ordered){
+        if (upper_front_he.sibling() == lower_front_he) {
+          he1 = upper_front_he;
+          he2 = lower_front_he;
+        }
+        else if (lower_front_he.sibling() == upper_front_he){
+          he2 = upper_front_he;
+          he1 = lower_front_he;
+        }
+        else throw std::logic_error("SplitEdge: siblings are supposed to be ordered!");
+      }
+      else{
+        he1 = upper_front_he;
+        he2 = upper_front_he.sibling();
+      }
+      heSiblingArr[he1.getIndex()] = wedge_loop_hes[i].getIndex();
+      heSiblingArr[wedge_loop_hes[i].getIndex()] = he2.getIndex();
+
+      // vertex -> he In and Out loops
+      addToVertexLists(wedge_loop_hes[i]);
+      addToVertexLists(wedge_bisecting_hes_pre[i]);
+      addToVertexLists(wedge_bisecting_hes_pro[i]);
     }
     // face -> halfedge ; pillars
     fHalfedgeArr[upper_faces[i].getIndex()] = upper_pilar_hes[i].getIndex();
@@ -385,10 +432,12 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity
     heFaceArr[lower_pilar_hes[i].getIndex()] = lower_faces[i].getIndex();
     heFaceArr[upper_bisecting_hes[i].getIndex()] = upper_faces[i].getIndex();
     heFaceArr[lower_bisecting_hes[i].getIndex()] = lower_faces[i].getIndex();
+    // cont..
+
     // he -> vertex  &&  he -> next
     //  -- pillars modification
     Halfedge next_he = upper_pilar_hes[i].next(),
-             prev_he = upper_pilar_hes[i].next(),
+             prev_he = upper_pilar_hes[i].next().next(),
              upper_he = upper_pilar_hes[i],
              lower_he = lower_pilar_hes[i];
     Vertex wing_v = next_he.tipVertex();
@@ -404,6 +453,9 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity
       heNextArr[prev_he.getIndex()] = lower_he.getIndex();
       heNextArr[lower_he.getIndex()] = lower_bisecting_hes[i].getIndex();
       heNextArr[lower_bisecting_hes[i].getIndex()] = prev_he.getIndex(); 
+
+      // he -> face ; lower faces
+      heFaceArr[prev_he.getIndex()] = lower_faces[i].getIndex();
     }
     else if (upper_he.tipVertex() == v1){
       // upper face
@@ -416,15 +468,53 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity
       heNextArr[lower_he.getIndex()] = next_he.getIndex();
       heNextArr[next_he.getIndex()] = lower_bisecting_hes[i].getIndex();
       heNextArr[lower_bisecting_hes[i].getIndex()] = lower_he.getIndex();
+
+      // he -> face ; lower faces
+      heFaceArr[next_he.getIndex()] = lower_faces[i].getIndex();
     }
     else throw std::logic_error("upper edge should have either v1 or v2 on the tip!");
 
-    //
+    // siblings
+    //  ** upper should be fine
+    heSiblingArr[lower_pilar_hes[i].getIndex()] = lower_pilar_hes[(i+1)%nSibs].getIndex();
+
+    // vertex -> he In and Out loops
+    addToVertexLists(upper_pilar_hes[i]); // will result in repetetive hes in v.hes(); since the tip/tail is already handled and we doing this here just for the new vertex
+    addToVertexLists(lower_pilar_hes[i]);
+    addToVertexLists(upper_bisecting_hes[i]);
+    addToVertexLists(lower_bisecting_hes[i]);
+
+    // DEBUG!
+    printf("current pillar hes\n   upper %d (%d, %d)\n   lower %d (%d, %d)\n", 
+           upper_pilar_hes[i].getIndex(), upper_pilar_hes[i].tailVertex().getIndex(), upper_pilar_hes[i].tipVertex().getIndex(),
+           lower_pilar_hes[i].getIndex(), lower_pilar_hes[i].tailVertex().getIndex(), lower_pilar_hes[i].tipVertex().getIndex());
+    printf("current bisectors\n");
+    printf("   low bisec he\n    %d (%d, %d)  edge %d\n", 
+           lower_bisecting_hes[i].getIndex(), lower_bisecting_hes[i].tailVertex().getIndex(), lower_bisecting_hes[i].tipVertex().getIndex(), lower_bisecting_hes[i].edge().getIndex());
+    printf("   upe bisec he\n    %d (%d, %d)  edge %d\n", 
+           upper_bisecting_hes[i].getIndex(), upper_bisecting_hes[i].tailVertex().getIndex(), upper_bisecting_hes[i].tipVertex().getIndex(), upper_bisecting_hes[i].edge().getIndex());
   }
+  printf("lower pillar edge %d, he %d (%d, %d)\n", 
+          lower_pilar_edge.getIndex(), lower_pilar_edge.halfedge().getIndex(),
+          lower_pilar_edge.firstVertex().getIndex(), lower_pilar_edge.secondVertex().getIndex());
+  printf("upper pillar edge %d, he %d (%d, %d)\n", 
+          upper_pilar_edge.getIndex(), upper_pilar_edge.halfedge().getIndex(),
+          upper_pilar_edge.firstVertex().getIndex(), upper_pilar_edge.secondVertex().getIndex());
   
-  // - orientation of all he
-  // - sibling relationships
-  // addToVertexLists(some he)
+  // orientation of he's ; all
+  for (size_t i = 0; i < nSibs; i++) {
+    //   ** upper remains ok
+    heOrientArr[lower_pilar_hes[i].getIndex()] = (lower_pilar_hes[i].vertex() == lower_pilar_edge.firstVertex());
+    bool wedge_condition = (!have_boundary || i < nSibs - 1);
+    if (wedge_condition){
+      // orientation of he's ; wedge bisecting face
+      heOrientArr[wedge_loop_hes[i].getIndex()] = (wedge_loop_hes[i].vertex() == wedge_loop_edges[i].firstVertex());
+      heOrientArr[wedge_bisecting_hes_pre[i].getIndex()] = (wedge_bisecting_hes_pre[i].vertex() == bisecting_edges[i].firstVertex());
+      heOrientArr[wedge_bisecting_hes_pro[i].getIndex()] = (wedge_bisecting_hes_pro[i].vertex() == bisecting_edges[(i + 1) % nSibs].firstVertex());
+    }
+  }
+
+  return new_v;
 }
 
 
