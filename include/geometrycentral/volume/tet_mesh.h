@@ -71,6 +71,7 @@ public:
     TetSet tets();
     
     // mesh resize routines
+    Face getNewFace();
     Tet getNewTet();
 
     // compression 

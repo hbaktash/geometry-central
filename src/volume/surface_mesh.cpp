@@ -1260,9 +1260,9 @@ void SurfaceMesh::validateConnectivity() {
     size_t count = 0;
     do {
       if (currHe.edge() != he.edge()){
-        printf("cuur he %d (%d,%d)'s edge is %d, where it shouldve been he %d (%d,%d), with edge %d\n", 
-                currHe.getIndex(), currHe.tailVertex().getIndex(), currHe.tipVertex().getIndex(),currHe.edge().getIndex(),
-                he.getIndex(), he.tailVertex().getIndex(), he.tipVertex().getIndex(), he.edge().getIndex());
+        printf("iterating for he %d (%d,%d) with edge %d. currently at he %d (%d,%d), with edge %d\n", 
+                he.getIndex(), he.tailVertex().getIndex(), he.tipVertex().getIndex(), he.edge().getIndex(),
+                currHe.getIndex(), currHe.tailVertex().getIndex(), currHe.tipVertex().getIndex(), currHe.edge().getIndex());
         throw std::logic_error("(he sibling) halfedge sibling doesn't have edge == he.edge");
       }
       if (count > nHalfedges()) throw std::logic_error("(he sibling) halfedge sibling doesn't cycle back");

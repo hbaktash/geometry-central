@@ -416,6 +416,11 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity
       addToVertexLists(wedge_loop_hes[i]);
       addToVertexLists(wedge_bisecting_hes_pre[i]);
       addToVertexLists(wedge_bisecting_hes_pro[i]);
+
+      printf("Wedge stuff \n");
+      printf("    pre_v,pro_v: %d, %d \n", pre_v.getIndex(), pro_v.getIndex());
+      printf("    he1: %d, %d \n    he2: %d, %d \n", he1.tailVertex().getIndex(), he1.tipVertex().getIndex(), 
+                                                     he2.tailVertex().getIndex(), he2.tipVertex().getIndex());
     }
     // face -> halfedge ; pillars
     fHalfedgeArr[upper_faces[i].getIndex()] = upper_pilar_hes[i].getIndex();
