@@ -721,7 +721,9 @@ void SurfaceMesh::removeFromVertexLists(Halfedge he) {
 
 void SurfaceMesh::addToVertexLists(Halfedge he) {
   size_t i = he.getIndex();
-
+  if (i == 15){
+    printf("Adding 15 (%d,%d)\n", he.tailVertex().getIndex(), he.tipVertex().getIndex());
+  }
   { // incoming array
     // get any vertex in the current list to use as an insertion point
     size_t iV = he.tipVertex().getIndex();
@@ -1358,6 +1360,9 @@ void SurfaceMesh::validateConnectivity() {
       size_t iHe = he.getIndex();
       Vertex thisTail = he.vertex();
       Vertex thisTip = he.next().vertex();
+      printf("    -- Checking he %d (%d,%d) tail, tip (%d, %d)\n", iHe, he.tailVertex().getIndex(), he.tipVertex().getIndex(), thisTail.getIndex(), thisTip.getIndex());
+      printf("       outNext %d (%d,%d) outPrev %d (%d, %d)\n", heVertOutNextArr[iHe], Halfedge(this, heVertOutNextArr[iHe]).vertex().getIndex(), Halfedge(this, heVertOutNextArr[iHe]).tipVertex().getIndex(), 
+                                                                heVertOutPrevArr[iHe], Halfedge(this, heVertOutPrevArr[iHe]).vertex().getIndex(), Halfedge(this, heVertOutPrevArr[iHe]).tipVertex().getIndex());
       if (Halfedge(this, heVertOutNextArr[iHe]).vertex() != thisTail)
         throw std::logic_error("heVertOutNextArr is not outgoing from same vert");
       if (Halfedge(this, heVertOutPrevArr[iHe]).vertex() != thisTail)
