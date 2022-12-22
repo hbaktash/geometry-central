@@ -343,6 +343,9 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
     Halfedge old_current_he = upper_pilar_hes[i],
              old_sib_he = upper_pilar_hes[(i + 1) % nSibs];
     
+    // vertex -> he In and Out loops ; need to remove uppers before assigning vertices.
+    removeFromVertexLists(upper_pilar_hes[i]);
+    
     // tet related stuff; and wedge faces
     bool wedge_condition = (!have_boundary || i < nSibs - 1);
     if (wedge_condition){
@@ -487,9 +490,7 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
     //  ** upper should be fine
     heSiblingArr[lower_pilar_hes[i].getIndex()] = lower_pilar_hes[(i+1)%nSibs].getIndex();
 
-    // vertex -> he In and Out loops
-    addToVertexLists(upper_pilar_hes[i]); // will result in repetetive hes in v.hes(); since the tip/tail is already handled and we doing this here just for the new vertex
-    addToVertexLists(lower_pilar_hes[i]);
+    // vertex -> he In and Out loops ; uppers have been removed
     addToVertexLists(upper_bisecting_hes[i]);
     addToVertexLists(lower_bisecting_hes[i]);
 
@@ -514,6 +515,10 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
   for (size_t i = 0; i < nSibs; i++) {
     //   ** upper remains ok
     heOrientArr[lower_pilar_hes[i].getIndex()] = (lower_pilar_hes[i].vertex() == lower_pilar_edge.firstVertex());
+    
+    heOrientArr[upper_bisecting_hes[i].getIndex()] = (upper_bisecting_hes[i].vertex() == bisecting_edges[i].firstVertex());
+    heOrientArr[lower_bisecting_hes[i].getIndex()] = (lower_bisecting_hes[i].vertex() == bisecting_edges[i].firstVertex());
+    
     bool wedge_condition = (!have_boundary || i < nSibs - 1);
     if (wedge_condition){
       // orientation of he's ; wedge bisecting face
@@ -521,6 +526,9 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
       heOrientArr[wedge_bisecting_hes_pre[i].getIndex()] = (wedge_bisecting_hes_pre[i].vertex() == bisecting_edges[i].firstVertex());
       heOrientArr[wedge_bisecting_hes_pro[i].getIndex()] = (wedge_bisecting_hes_pro[i].vertex() == bisecting_edges[(i + 1) % nSibs].firstVertex());
     }
+    // vertex -> he In and Out loops ; adding pillars, since the old he's have all been removed.
+    addToVertexLists(upper_pilar_hes[i]);
+    addToVertexLists(lower_pilar_hes[i]);
   }
 
   return new_v;
