@@ -635,7 +635,19 @@ void SurfaceMesh::copyInternalFields(SurfaceMesh& target) const {
 
 
 Edge SurfaceMesh::connectingEdge(Vertex vA, Vertex vB) {
+  if (vA.getIndex() == 4 && vB.getIndex() == 3){
+    printf("searching for %d, %d\n", vA.getIndex(), vB.getIndex());
+    printf("TEMP\n in: \n");
+    printf("   out, in start: %d, %d\n", vHeOutStartArr[vA.getIndex()], vHeInStartArr[vB.getIndex()]);
+    for (Halfedge he: vA.incomingHalfedges()) printf("(%d, %d) -- ", he.tailVertex().getIndex(), he.tipVertex().getIndex());
+    printf("\n out:\n");
+    for (Halfedge he: vA.outgoingHalfedges()) printf("xx\n"); // printf("(%d, %d) -- ", he.tailVertex().getIndex(), he.tipVertex().getIndex());
+    printf("\n");
+  }
   for (Edge e : vA.adjacentEdges()) {
+    if (vA.getIndex() == 4 && vB.getIndex() == 3){
+      printf("        edge %d\n", e.getIndex());
+    }
     if (e.otherVertex(vA) == vB) {
       return e;
     }
@@ -1356,7 +1368,7 @@ void SurfaceMesh::validateConnectivity() {
       size_t iHe = he.getIndex();
       Vertex thisTail = he.vertex();
       Vertex thisTip = he.next().vertex();
-      printf("    -- Checking he %d (%d,%d) tail, tip (%d, %d)\n", iHe, he.tailVertex().getIndex(), he.tipVertex().getIndex(), thisTail.getIndex(), thisTip.getIndex());
+      printf("    -- Checking he %d (%d,%d) \n", iHe, he.tailVertex().getIndex(), he.tipVertex().getIndex());
       printf("       outNext %d (%d,%d) outPrev %d (%d, %d)\n", heVertOutNextArr[iHe], Halfedge(this, heVertOutNextArr[iHe]).vertex().getIndex(), Halfedge(this, heVertOutNextArr[iHe]).tipVertex().getIndex(), 
                                                                 heVertOutPrevArr[iHe], Halfedge(this, heVertOutPrevArr[iHe]).vertex().getIndex(), Halfedge(this, heVertOutPrevArr[iHe]).tipVertex().getIndex());
       if (Halfedge(this, heVertOutNextArr[iHe]).vertex() != thisTail)
@@ -1387,14 +1399,14 @@ void SurfaceMesh::validateConnectivity() {
     size_t count = 0;
     printf("Vertex %d\n", v.getIndex());
     for (Halfedge currHe : v.outgoingHalfedges()) {
-      printf("  **  current he %d (%d, %d)\n", currHe.getIndex(), currHe.tailVertex().getIndex(), currHe.tipVertex().getIndex());
+      printf("  **  out current he %d (%d, %d)\n", currHe.getIndex(), currHe.tailVertex().getIndex(), currHe.tipVertex().getIndex());
       if (count > nHalfedgesCount) throw std::logic_error("vertex outgoing halfedges has bad cycle");
       if (currHe.vertex() != v) throw std::logic_error("vertex.halfedge doesn't match halfedge.vertex");
       count++;
     }
     count = 0;
     for (Halfedge currHe : v.incomingHalfedges()) {
-      // printf("");
+      printf("  //  inc current he %d (%d, %d)\n", currHe.getIndex(), currHe.tailVertex().getIndex(), currHe.tipVertex().getIndex());
       if (count > nHalfedgesCount) throw std::logic_error("vertex incoming halfedges has bad cycle");
       if (currHe.tipVertex() != v) throw std::logic_error("vertex.[incoming]halfedge doesn't match halfedge.tipVertex");
       count++;
@@ -1438,8 +1450,8 @@ void SurfaceMesh::validateConnectivity() {
   if (!usesImplicitTwin()) {
     for (Halfedge he : halfedges()) {
       Halfedge heCan = he.edge().halfedge();
-      printf("   --- Checking for edge %d, with he %d (%d,%d)\n", he.edge().getIndex(), heCan.getIndex(), heCan.tailVertex().getIndex(), heCan.tipVertex().getIndex());
-      printf("       current he %d with orientation %d, can orientation %d \n", he.getIndex(), he.orientation(), heCan.orientation());
+      // printf("   --- Checking for edge %d, with he %d (%d,%d)\n", he.edge().getIndex(), heCan.getIndex(), heCan.tailVertex().getIndex(), heCan.tipVertex().getIndex());
+      // printf("       current he %d with orientation %d, can orientation %d \n", he.getIndex(), he.orientation(), heCan.orientation());
       if (he.orientation() == heCan.orientation()) {
         if (he.tipVertex() != heCan.tipVertex() || he.tailVertex() != heCan.tailVertex())
           throw std::logic_error("orientation is inconsistent with endpoints");

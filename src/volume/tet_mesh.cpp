@@ -337,11 +337,16 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
   printf("New vertex: %d:\n", new_v.getIndex());
   
   // vertex -> he ; just for center
+  // TODO HEHRHHEHEHREHRHERHEHREHR
   vHalfedgeArr[new_v.getIndex()] = upper_pilar_hes[0].getIndex();
+  vHalfedgeArr[v2.getIndex()] =  upper_pilar_hes[0].getIndex();
+  vHalfedgeArr[v1.getIndex()] =  lower_pilar_hes[0].getIndex();
+  
   vHeOutStartArr[new_v.getIndex()] = INVALID_IND; // will be handled later; TODO this should hold by default.
   vHeInStartArr[new_v.getIndex()] = INVALID_IND; // will be handled later; TODO this should hold by default.
   // edge -> halfedge ; just for the lower edge
-  //   ** upper is already fine
+  //   ** upper is already fine?
+  eHalfedgeArr[upper_pilar_edge.getIndex()] = upper_pilar_hes[0].getIndex();
   eHalfedgeArr[lower_pilar_edge.getIndex()] = lower_pilar_hes[0].getIndex();
   for (size_t i = 0; i < nSibs; i++) {
     Halfedge old_current_he = upper_pilar_hes[i],
@@ -354,18 +359,17 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
     if (wedge_condition){
       Vertex pre_v = old_current_he.next().tipVertex(),
              pro_v = old_sib_he.next().tipVertex();
-      printf("here2\n");
       printf(" v1 v2 prev prov %d, %d, %d, %d \n", v1.getIndex(), v2.getIndex(), pre_v.getIndex(), pro_v.getIndex());
 
-      Face upper_front_face = get_connecting_face(v2, pre_v, pro_v),
-           lower_front_face = get_connecting_face(v1, pre_v, pro_v);
-      //TODO SAVE THEM BEFORE, get face won't work well probabl
-      
+      Face upper_front_face = get_connecting_face(pre_v, pro_v, v2),
+           lower_front_face = get_connecting_face(pre_v, pro_v, v1);
+      //TODO SAVE THEM BEFORE, get face won't work well probably?? no actually ?
+
       // tet -> vertex
       printf("here22\n");
       tAdjVs[upper_tets[i].getIndex()] = {v2.getIndex(), new_v.getIndex(), old_current_he.next().tipVertex().getIndex(), old_sib_he.next().tipVertex().getIndex()};
       tAdjVs[lower_tets[i].getIndex()] = {v1.getIndex(), new_v.getIndex(), old_current_he.next().tipVertex().getIndex(), old_sib_he.next().tipVertex().getIndex()};
-      printf("here3\n");
+      
       // face -> tet
       fAdjTs[lower_faces[i].getIndex()].push_back(lower_tets[i].getIndex());
       fAdjTs[lower_faces[(i + 1) % nSibs].getIndex()].push_back(lower_tets[i].getIndex());
@@ -381,7 +385,6 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
       //  --  wedge face ; ez
       Face wedge_bisecting_face = wedge_bisecting_faces[i];
       fAdjTs[wedge_bisecting_face.getIndex()] = {upper_tets[i].getIndex(), lower_tets[i].getIndex()};
-      printf("here4\n");
 
       // face -> halfedge ; wedge bisectors
       fHalfedgeArr[wedge_bisecting_face.getIndex()] = wedge_loop_hes[i].getIndex();
@@ -450,7 +453,8 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
     // edge -> halfedge ; bisectors
     eHalfedgeArr[bisecting_edges[i].getIndex()] = upper_bisecting_hes[i].getIndex();
     // he -> edge ; on-face stuff
-    //  ** upper is fine
+    //  ** upper is fine?
+    heEdgeArr[upper_pilar_hes[i].getIndex()] = upper_pilar_edge.getIndex();
     heEdgeArr[lower_pilar_hes[i].getIndex()] = lower_pilar_edge.getIndex();
     heEdgeArr[upper_bisecting_hes[i].getIndex()] = bisecting_edges[i].getIndex();
     heEdgeArr[lower_bisecting_hes[i].getIndex()] = bisecting_edges[i].getIndex();
@@ -531,6 +535,12 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
     heOrientArr[upper_bisecting_hes[i].getIndex()] = (upper_bisecting_hes[i].vertex() == bisecting_edges[i].firstVertex());
     heOrientArr[lower_bisecting_hes[i].getIndex()] = (lower_bisecting_hes[i].vertex() == bisecting_edges[i].firstVertex());
     
+    // vertex -> he In and Out loops ; uppers have been removed
+    addToVertexLists(upper_pilar_hes[i]);
+    addToVertexLists(lower_pilar_hes[i]);
+    addToVertexLists(upper_bisecting_hes[i]);
+    addToVertexLists(lower_bisecting_hes[i]);
+    
     bool wedge_condition = (!have_boundary || i < nSibs - 1);
     if (wedge_condition){
       // orientation of he's ; wedge bisecting face
@@ -542,11 +552,6 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
       addToVertexLists(wedge_bisecting_hes_pre[i]);
       addToVertexLists(wedge_bisecting_hes_pro[i]);
     }
-    // vertex -> he In and Out loops ; uppers have been removed
-    addToVertexLists(upper_bisecting_hes[i]);
-    addToVertexLists(lower_bisecting_hes[i]);
-    addToVertexLists(upper_pilar_hes[i]);
-    addToVertexLists(lower_pilar_hes[i]);
   }
 
   return new_v;
@@ -972,12 +977,12 @@ void TetMesh::validateConnectivity(){
   // Tet stuff 
   for(Face f : faces()){
     bool found_it = false;
-    if (f.adjacentTets().size() > 2) throw std::logic_error("validateConnectivity: Face has more than 2 tets!");
-    printf("Checking face %d ", f.getIndex());
-    for (Vertex v: f.adjacentVertices()) printf(" %d, ", v.getIndex());
-    printf("\n");
+    if (f.adjacentTets().size() > 2) throw std::logic_error("validateConnectivity: Face has more than 2 tets! Non-manifold?");
+    // printf("Checking face %d ", f.getIndex());
+    // for (Vertex v: f.adjacentVertices()) printf(" %d, ", v.getIndex());
+    // printf("\n");
     for(Tet t : f.adjacentTets()){
-      printf("    adj T %d\n", t.getIndex());
+      // printf("    adj T %d\n", t.getIndex());
       for(Face tf: t.adjFaces()){
         if(tf == f) found_it = true;
       }
