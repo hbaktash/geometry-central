@@ -635,19 +635,19 @@ void SurfaceMesh::copyInternalFields(SurfaceMesh& target) const {
 
 
 Edge SurfaceMesh::connectingEdge(Vertex vA, Vertex vB) {
-  if (vA.getIndex() == 4 && vB.getIndex() == 3){
-    printf("searching for %d, %d\n", vA.getIndex(), vB.getIndex());
-    printf("TEMP\n in: \n");
-    printf("   out, in start: %d, %d\n", vHeOutStartArr[vA.getIndex()], vHeInStartArr[vB.getIndex()]);
-    for (Halfedge he: vA.incomingHalfedges()) printf("(%d, %d) -- ", he.tailVertex().getIndex(), he.tipVertex().getIndex());
-    printf("\n out:\n");
-    for (Halfedge he: vA.outgoingHalfedges()) printf("xx\n"); // printf("(%d, %d) -- ", he.tailVertex().getIndex(), he.tipVertex().getIndex());
-    printf("\n");
-  }
+  // if (vA.getIndex() == 4 && vB.getIndex() == 3){
+  //   printf("searching for %d, %d\n", vA.getIndex(), vB.getIndex());
+  //   printf("TEMP\n in: \n");
+  //   printf("   out, in start: %d, %d\n", vHeOutStartArr[vA.getIndex()], vHeInStartArr[vB.getIndex()]);
+  //   for (Halfedge he: vA.incomingHalfedges()) printf("(%d, %d) -- ", he.tailVertex().getIndex(), he.tipVertex().getIndex());
+  //   printf("\n out:\n");
+  //   for (Halfedge he: vA.outgoingHalfedges()) printf("xx\n"); // printf("(%d, %d) -- ", he.tailVertex().getIndex(), he.tipVertex().getIndex());
+  //   printf("\n");
+  // }
   for (Edge e : vA.adjacentEdges()) {
-    if (vA.getIndex() == 4 && vB.getIndex() == 3){
-      printf("        edge %d\n", e.getIndex());
-    }
+    // if (vA.getIndex() == 4 && vB.getIndex() == 3){
+    //   printf("        edge %d\n", e.getIndex());
+    // }
     if (e.otherVertex(vA) == vB) {
       return e;
     }
@@ -1368,9 +1368,9 @@ void SurfaceMesh::validateConnectivity() {
       size_t iHe = he.getIndex();
       Vertex thisTail = he.vertex();
       Vertex thisTip = he.next().vertex();
-      printf("    -- Checking he %d (%d,%d) \n", iHe, he.tailVertex().getIndex(), he.tipVertex().getIndex());
-      printf("       outNext %d (%d,%d) outPrev %d (%d, %d)\n", heVertOutNextArr[iHe], Halfedge(this, heVertOutNextArr[iHe]).vertex().getIndex(), Halfedge(this, heVertOutNextArr[iHe]).tipVertex().getIndex(), 
-                                                                heVertOutPrevArr[iHe], Halfedge(this, heVertOutPrevArr[iHe]).vertex().getIndex(), Halfedge(this, heVertOutPrevArr[iHe]).tipVertex().getIndex());
+      // printf("    -- Checking he %d (%d,%d) \n", iHe, he.tailVertex().getIndex(), he.tipVertex().getIndex());
+      // printf("       outNext %d (%d,%d) outPrev %d (%d, %d)\n", heVertOutNextArr[iHe], Halfedge(this, heVertOutNextArr[iHe]).vertex().getIndex(), Halfedge(this, heVertOutNextArr[iHe]).tipVertex().getIndex(), 
+      //                                                           heVertOutPrevArr[iHe], Halfedge(this, heVertOutPrevArr[iHe]).vertex().getIndex(), Halfedge(this, heVertOutPrevArr[iHe]).tipVertex().getIndex());
       if (Halfedge(this, heVertOutNextArr[iHe]).vertex() != thisTail)
         throw std::logic_error("heVertOutNextArr is not outgoing from same vert");
       if (Halfedge(this, heVertOutPrevArr[iHe]).vertex() != thisTail)
@@ -1394,19 +1394,19 @@ void SurfaceMesh::validateConnectivity() {
 
 
   // Check vertex orbit sanity
-  printf("Check vertex orbit sanity\n");
+  // printf("Check vertex orbit sanity\n");
   for (Vertex v : vertices()) {
     size_t count = 0;
-    printf("Vertex %d\n", v.getIndex());
+    // printf("Vertex %d\n", v.getIndex());
     for (Halfedge currHe : v.outgoingHalfedges()) {
-      printf("  **  out current he %d (%d, %d)\n", currHe.getIndex(), currHe.tailVertex().getIndex(), currHe.tipVertex().getIndex());
+      // printf("  **  out current he %d (%d, %d)\n", currHe.getIndex(), currHe.tailVertex().getIndex(), currHe.tipVertex().getIndex());
       if (count > nHalfedgesCount) throw std::logic_error("vertex outgoing halfedges has bad cycle");
       if (currHe.vertex() != v) throw std::logic_error("vertex.halfedge doesn't match halfedge.vertex");
       count++;
     }
     count = 0;
     for (Halfedge currHe : v.incomingHalfedges()) {
-      printf("  //  inc current he %d (%d, %d)\n", currHe.getIndex(), currHe.tailVertex().getIndex(), currHe.tipVertex().getIndex());
+      // printf("  //  inc current he %d (%d, %d)\n", currHe.getIndex(), currHe.tailVertex().getIndex(), currHe.tipVertex().getIndex());
       if (count > nHalfedgesCount) throw std::logic_error("vertex incoming halfedges has bad cycle");
       if (currHe.tipVertex() != v) throw std::logic_error("vertex.[incoming]halfedge doesn't match halfedge.tipVertex");
       count++;

@@ -109,8 +109,8 @@ TetMesh::TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_,
 Face TetMesh::get_connecting_face(Vertex v1, Vertex v2, Vertex v3){
   Edge e1 = connectingEdge(v1, v2);
   Edge e2 = connectingEdge(v1, v3);
-  printf("e1 %d (%d, %d), e2 %d (%d, %d)\n", e1.getIndex(), e1.firstVertex().getIndex(), e1.secondVertex().getIndex(),
-                                             e2.getIndex(), e2.firstVertex().getIndex(), e2.secondVertex().getIndex());
+  // printf("e1 %d (%d, %d), e2 %d (%d, %d)\n", e1.getIndex(), e1.firstVertex().getIndex(), e1.secondVertex().getIndex(),
+  //                                            e2.getIndex(), e2.firstVertex().getIndex(), e2.secondVertex().getIndex());
   for(Face f1: e1.adjacentFaces()){
     for(Face f2: e2.adjacentFaces()){
       if(f1 == f2){
@@ -282,7 +282,17 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
            sib_he = first_he.sibling();
   Face current_face = current_he.face(),
        sib_face  = sib_he.face();
+  
   Tet current_tet = get_connecting_tet(current_he.tipVertex(), current_he.tailVertex(), current_he.next().tipVertex(), sib_he.next().tipVertex()); 
+  Vertex v1 = e.firstVertex(), v2 = e.secondVertex();  // will select v2 as upper!
+  
+  Halfedge off_pilar_v1_incoming, off_pilar_v1_outgoing,
+           off_pilar_v2_incoming, off_pilar_v2_outgoing;
+  for (Halfedge tmp_he: v1.outgoingHalfedges()) if(tmp_he.edge() != e) off_pilar_v1_outgoing = tmp_he;
+  for (Halfedge tmp_he: v1.incomingHalfedges()) if(tmp_he.edge() != e) off_pilar_v1_incoming = tmp_he;
+  for (Halfedge tmp_he: v2.outgoingHalfedges()) if(tmp_he.edge() != e) off_pilar_v2_outgoing = tmp_he;
+  for (Halfedge tmp_he: v2.incomingHalfedges()) if(tmp_he.edge() != e) off_pilar_v2_incoming = tmp_he;
+
   // iterate till next boundary; or till we loop back
   size_t nSibs = 0;
   while (true) {
@@ -293,9 +303,10 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
       upper_tets.push_back(current_tet);
       Face wedge_face = getNewFace();
       wedge_bisecting_faces.push_back(wedge_face);
-      Vertex v1 = current_he.next().tipVertex(), 
+      Vertex v1 = current_he.next().tipVertex(),
              v2 = sib_he.next().tipVertex();
       Edge wedge_edge = connectingEdge(v1, v2);
+      printf("FIRST CHECK Spliting Edge %d v1, v2:(%d, %d):\n", e.getIndex(), v1.getIndex(), v2.getIndex());
       if (wedge_edge.getIndex() == INVALID_IND) throw std::logic_error("SplitEdge: wedge edge doesn't exist!");
       wedge_loop_edges.push_back(wedge_edge);
       Halfedge wedge_loop_he = getNewHalfedge(true);
@@ -330,20 +341,14 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
   
   // hook-up pointers
 
-  Vertex v1 = e.firstVertex(), v2 = e.secondVertex();  // will select v2 as upper!
-  
   // DEBUG
   printf("Spliting Edge %d v1, v2:(%d, %d):\n", e.getIndex(), v1.getIndex(), v2.getIndex());
   printf("New vertex: %d:\n", new_v.getIndex());
   
-  // vertex -> he ; just for center
-  // TODO HEHRHHEHEHREHRHERHEHREHR
-  vHalfedgeArr[new_v.getIndex()] = upper_pilar_hes[0].getIndex();
-  vHalfedgeArr[v2.getIndex()] =  upper_pilar_hes[0].getIndex();
-  vHalfedgeArr[v1.getIndex()] =  lower_pilar_hes[0].getIndex();
-  
+  // new_v -> he in/out
   vHeOutStartArr[new_v.getIndex()] = INVALID_IND; // will be handled later; TODO this should hold by default.
   vHeInStartArr[new_v.getIndex()] = INVALID_IND; // will be handled later; TODO this should hold by default.
+  
   // edge -> halfedge ; just for the lower edge
   //   ** upper is already fine?
   eHalfedgeArr[upper_pilar_edge.getIndex()] = upper_pilar_hes[0].getIndex();
@@ -487,6 +492,9 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
 
       // he -> face ; lower faces
       heFaceArr[prev_he.getIndex()] = lower_faces[i].getIndex();
+
+      // new_v -> he
+      if (i == 0) vHalfedgeArr[new_v.getIndex()] = upper_he.getIndex();
     }
     else if (upper_he.tipVertex() == v1){
       // upper face
@@ -502,6 +510,9 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
 
       // he -> face ; lower faces
       heFaceArr[next_he.getIndex()] = lower_faces[i].getIndex();
+
+      // new_v -> he
+      if (i == 0) vHalfedgeArr[new_v.getIndex()] = lower_he.getIndex();
     }
     else throw std::logic_error("upper edge should have either v1 or v2 on the tip!");
 
@@ -554,6 +565,21 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
     }
   }
 
+  // vertex -> he ; just for center
+  // TODO HEHRHHEHEHREHRHERHEHREHR
+  if (upper_pilar_hes[0].vertex() == new_v)
+    vHalfedgeArr[new_v.getIndex()] = upper_pilar_hes[0].getIndex();
+  else
+    vHalfedgeArr[new_v.getIndex()] = lower_pilar_hes[0].getIndex();
+  vHalfedgeArr[v2.getIndex()] =  off_pilar_v2_outgoing.getIndex();
+  vHalfedgeArr[v1.getIndex()] =  off_pilar_v1_outgoing.getIndex();
+  
+  vHeOutStartArr[v2.getIndex()] =  off_pilar_v2_outgoing.getIndex();
+  vHeOutStartArr[v1.getIndex()] =  off_pilar_v1_outgoing.getIndex();
+  vHeInStartArr[v2.getIndex()] =  off_pilar_v2_incoming.getIndex();
+  vHeInStartArr[v1.getIndex()] =  off_pilar_v1_incoming.getIndex();
+  
+  
   return new_v;
 }
 
