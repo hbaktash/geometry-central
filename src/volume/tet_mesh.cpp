@@ -183,12 +183,15 @@ Tet TetMesh::next_tet_along_face(Tet t, Face f){
 
 Halfedge TetMesh::boundary_he_of_edge(Edge e){
   // finding a boundary he -> face
-  Halfedge first_he = e.halfedge(), he = e.halfedge();
+  Halfedge first_he = e.halfedge(), 
+           he = e.halfedge();
   Halfedge boundary_he = Halfedge();
   while (true) {
     if (face_is_boundary(he.face())) {
-      boundary_he = he;
-      break;
+      if (he.sibling().sibling() == he || !face_is_boundary(he.sibling().face())){
+        boundary_he = he;
+        break;
+      }
     }
     he = he.sibling();
     if (he == first_he) break;
@@ -293,6 +296,10 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
   for (Halfedge tmp_he: v2.outgoingHalfedges()) if(tmp_he.edge() != e) off_pilar_v2_outgoing = tmp_he;
   for (Halfedge tmp_he: v2.incomingHalfedges()) if(tmp_he.edge() != e) off_pilar_v2_incoming = tmp_he;
 
+  // DEBUG
+  printf("Spliting Edge %d v1, v2:(%d, %d):\n", e.getIndex(), v1.getIndex(), v2.getIndex());
+  printf("New vertex: %d:\n", new_v.getIndex());
+  
   // iterate till next boundary; or till we loop back
   size_t nSibs = 0;
   while (true) {
@@ -303,10 +310,10 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
       upper_tets.push_back(current_tet);
       Face wedge_face = getNewFace();
       wedge_bisecting_faces.push_back(wedge_face);
-      Vertex v1 = current_he.next().tipVertex(),
-             v2 = sib_he.next().tipVertex();
-      Edge wedge_edge = connectingEdge(v1, v2);
-      printf("FIRST CHECK Spliting Edge %d v1, v2:(%d, %d):\n", e.getIndex(), v1.getIndex(), v2.getIndex());
+      Vertex v_current = current_he.next().tipVertex(),
+             v_next = sib_he.next().tipVertex();
+      Edge wedge_edge = connectingEdge(v_current, v_next);
+      printf("FIRST finding wedge %d v1, v2:(%d, %d):\n", wedge_edge.getIndex(), v_current.getIndex(), v_next.getIndex());
       if (wedge_edge.getIndex() == INVALID_IND) throw std::logic_error("SplitEdge: wedge edge doesn't exist!");
       wedge_loop_edges.push_back(wedge_edge);
       Halfedge wedge_loop_he = getNewHalfedge(true);
@@ -341,10 +348,6 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
   
   // hook-up pointers
 
-  // DEBUG
-  printf("Spliting Edge %d v1, v2:(%d, %d):\n", e.getIndex(), v1.getIndex(), v2.getIndex());
-  printf("New vertex: %d:\n", new_v.getIndex());
-  
   // new_v -> he in/out
   vHeOutStartArr[new_v.getIndex()] = INVALID_IND; // will be handled later; TODO this should hold by default.
   vHeInStartArr[new_v.getIndex()] = INVALID_IND; // will be handled later; TODO this should hold by default.
