@@ -11,6 +11,8 @@ namespace volume{
 // simple splitting by inserting a vertex
 Vertex split_tet(TetMesh* tet_mesh, VertexPositionGeometry* geometry, Tet tIn, std::vector<double> bary_weights);
 
+Vertex split_edge(TetMesh* mesh, VertexPositionGeometry* geometry, Edge e, std::pair<double, double> bary_weights);
+
 }
 }
 

@@ -104,6 +104,7 @@ TetMesh::TetMesh(const std::vector<std::vector<size_t>>& tet_v_inds_,
     }
     tet_ind++;
   }
+  order_all_siblings();
 }
 
 Face TetMesh::get_connecting_face(Vertex v1, Vertex v2, Vertex v3){

@@ -35,5 +35,28 @@ Vertex split_tet(TetMesh* tet_mesh, VertexPositionGeometry* geometry,
 }
 
 
+Vertex split_edge(TetMesh* tet_mesh, VertexPositionGeometry* geometry, Edge e, std::pair<double, double> bary_weights){
+    Vector3 baryCenter = {0., 0., 0.};
+    baryCenter += (geometry->inputVertexPositions[e.firstVertex()]  * bary_weights.first + 
+                   geometry->inputVertexPositions[e.secondVertex()] * bary_weights.second)/(bary_weights.first + bary_weights.second);
+    
+    Vertex v = tet_mesh->splitEdge(e);
+    // tet_mesh->validateConnectivity();
+    std::cout<<"compressing..\n";
+    tet_mesh->compress(); // otherwise? vector size is doubles and we get lots of meaningless indices?
+    tet_mesh->compressTets();
+    std::cout<<"compressed.\n";
+    VertexData<Vector3> newPositions(*tet_mesh);
+    for(Vertex vv: tet_mesh->vertices()){
+        if(vv.getIndex() != v.getIndex()){
+            newPositions[vv] = geometry->inputVertexPositions[vv];
+        }
+    }
+    newPositions[v] = baryCenter;
+    geometry->inputVertexPositions = newPositions;
+    geometry->refreshQuantities();
+    return v;
+}
+
 }
 }
