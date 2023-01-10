@@ -532,6 +532,7 @@ Vertex TetMesh::splitEdge(Edge e){ // assumes triangularity and ordering of sibl
     //        lower_bisecting_hes[i].getIndex(), lower_bisecting_hes[i].tailVertex().getIndex(), lower_bisecting_hes[i].tipVertex().getIndex(), lower_bisecting_hes[i].edge().getIndex());
     // printf("   upe bisec he\n    %d (%d, %d)  edge %d\n", 
     //        upper_bisecting_hes[i].getIndex(), upper_bisecting_hes[i].tailVertex().getIndex(), upper_bisecting_hes[i].tipVertex().getIndex(), upper_bisecting_hes[i].edge().getIndex());
+  
   }
   // printf("lower pillar edge %d, he %d (%d, %d)\n", 
   //         lower_pilar_edge.getIndex(), lower_pilar_edge.halfedge().getIndex(),
