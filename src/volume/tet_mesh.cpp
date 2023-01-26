@@ -48,24 +48,29 @@ void SimpleTetMesh::mergeIdenticalVertices(){
 }
 
 void SimpleTetMesh::mergeIdenticalFaces(){
-    std::unordered_set<Vector3> triangle_set; // Could have a int type Vector3 kind of thing to avoid the double casts. Tuple is not Hashable?
+    size_t face_cnt = 0;
+    std::map<std::tuple<size_t, size_t, size_t>, size_t> triangle_to_face_ind;
     for(std::vector<size_t> triangle: polygons){
         size_t min = *std::min_element(triangle.begin(), triangle.end()), 
                max = *std::max_element(triangle.begin(), triangle.end()), 
                mid = triangle[0] + triangle[1] + triangle[2] - max - min;
-        Vector3 t0{(double)min, (double)mid, (double)max}; // sorry
-        triangle_set.insert(t0);
+        std::tuple<size_t, size_t, size_t> id = {min, mid, max};
+        auto it = triangle_to_face_ind.find(id);
+        if (it == triangle_to_face_ind.end()){ // new face
+          triangle_to_face_ind[id] = face_cnt;
+          face_cnt++;
+        }
     }
-    std::vector<std::vector<size_t>> compressed_triangles;
-    compressed_triangles.reserve(triangle_set.size());
+    std::vector<std::vector<size_t>> compressed_faces;
+    compressed_faces.reserve(face_cnt);
     
     //compressing triangle vector set
-    for (auto itr = triangle_set.begin(); itr != triangle_set.end(); ++itr) {
-        Vector3 tri_vec3 = (*itr);
-        std::vector<size_t> tri_vec = {(size_t)tri_vec3[0], (size_t)tri_vec3[1], (size_t)tri_vec3[2]};
-        compressed_triangles.push_back(tri_vec);
+    for (auto const& item: triangle_to_face_ind) {
+        size_t va_ind, vb_ind, vc_ind;
+        std::tie(va_ind, vb_ind, vc_ind) = item.first;
+        compressed_faces.push_back({va_ind, vb_ind, vc_ind});
     }
-    polygons = std::vector<std::vector<size_t>>(compressed_triangles);
+    polygons = std::vector<std::vector<size_t>>(compressed_faces);
 }
 
 
