@@ -202,9 +202,69 @@ SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
       heSiblingArr[currHe] = lastHe; // connect the first to the last
     }
 
-  } else {
-    // DisjointSets djSet
-    throw std::runtime_error("not implemented");
+  } else { // Construct from given twin arrays
+    std::vector<std::vector<size_t>> halfedgeIndex;
+    halfedgeIndex.reserve(nFacesCount);
+    size_t nH = 0;
+    for (size_t iFace = 0; iFace < nFacesCount; iFace++) {
+      size_t faceDegree = polygons[iFace].size();
+      halfedgeIndex.push_back(std::vector<size_t>{});
+      halfedgeIndex.back().reserve(faceDegree);
+      for (size_t iFaceHe = 0; iFaceHe < faceDegree; iFaceHe++) {
+        halfedgeIndex.back().push_back(nH);
+        nH++;
+      }
+    }
+
+    // now nH = number of halfedges
+    DisjointSets edgeOrbits(nH);
+    for (size_t iFace = 0; iFace < nFacesCount; iFace++) {
+      size_t faceDegree = polygons[iFace].size();
+      for (size_t iFaceHe = 0; iFaceHe < faceDegree; iFaceHe++) {
+        size_t iSiblingFace, iSiblingFaceHe;
+        std::tie(iSiblingFace, iSiblingFaceHe) = twins[iFace][iFaceHe];
+        if (iSiblingFace != INVALID_IND) {
+          edgeOrbits.merge(halfedgeIndex[iFace][iFaceHe], halfedgeIndex[iSiblingFace][iSiblingFaceHe]);
+        }
+      }
+    }
+
+    std::map<size_t, size_t> edgeIndex; // use as edgeIndex[edgeOrbits.find(halfedge)] ...
+    for (size_t iFace = 0; iFace < nFacesCount; iFace++) {
+      const std::vector<size_t>& poly = polygons[iFace];
+      size_t faceDegree = poly.size();
+      for (size_t iFaceHe = 0; iFaceHe < faceDegree; iFaceHe++) {
+        size_t indTail = poly[iFaceHe];
+        size_t indTip = poly[(iFaceHe + 1) % faceDegree];
+
+        size_t iHe = halfedgeIndex[iFace][iFaceHe];
+        size_t edgeKey = edgeOrbits.find(iHe);
+        auto edgeIndexItr = edgeIndex.find(edgeKey);
+
+        size_t iSiblingFace, iSiblingFaceHe;
+        std::tie(iSiblingFace, iSiblingFaceHe) = twins[iFace][iFaceHe];
+        size_t iHeSibling = iSiblingFace == INVALID_IND ? INVALID_IND : halfedgeIndex[iSiblingFace][iSiblingFaceHe];
+
+        if (edgeIndexItr == edgeIndex.end()) {
+          // This is the first time we've ever seen this edge, create a new edge object
+          size_t newEdgeInd = getNewEdge().getIndex();
+          heEdgeArr[iHe] = newEdgeInd;
+          heSiblingArr[iHe] = iHeSibling;
+          heOrientArr[iHe] = true;
+          eHalfedgeArr[newEdgeInd] = iHe;
+          edgeIndex[edgeKey] = newEdgeInd;
+        } else {
+          // We're already seen this edge, connect to the previous halfedge incident on the edge
+          heSiblingArr[iHe] = iHeSibling;
+          size_t iE = edgeIndexItr->second;
+          heEdgeArr[iHe] = iE;
+          // best we can to is set orientation to match endpoints (need a richer representation to input orientation if
+          // endpoints are not unique)
+          heOrientArr[iHe] = (heVertexArr[iHe] == heVertexArr[eHalfedgeArr[iE]]);
+        }
+        iHe++;
+      }
+    }
   }
 
   initializeHalfedgeNeighbors();
