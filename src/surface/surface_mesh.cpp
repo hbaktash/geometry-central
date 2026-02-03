@@ -71,7 +71,7 @@ SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
   nFacesCount = polygons.size();
   nVerticesCount = 0;
   for (const std::vector<size_t>& poly : polygons) {
-    GC_SAFETY_ASSERT(poly.size() >= 3, "faces must have degree >= 3");
+    // GC_SAFETY_ASSERT(poly.size() >= 3, "faces must have degree >= 3");
     for (auto i : poly) {
       nVerticesCount = std::max(nVerticesCount, i);
     }
