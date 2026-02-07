@@ -444,10 +444,16 @@ bool SurfaceMesh::isTriangular() {
 
 bool SurfaceMesh::isManifold() {
   for (Edge e : edges()) {
-    if (!e.isManifold()) return false;
+    if (!e.isManifold()) {
+      std::cout << " non-manifold edge found at index " << e.getIndex() << ":("<< e.firstVertex() << " -> " << e.secondVertex() << ")." << std::endl;
+      return false;
+    }
   }
   for (Vertex v : vertices()) {
-    if (!v.isManifold()) return false;
+    if (!v.isManifold()) {
+      std::cout << " non-manifold vertex found at index " << v.getIndex() << "." << std::endl;
+      return false;
+    }
   }
   return true;
 }
