@@ -88,7 +88,6 @@ inline bool Vertex::isManifold() const {
   }
   for (Face f : adjacentFaces()) { 
     if(seen.find(f) == seen.end()) {
-      std::cout << " vertex " << getIndex() << " missing face " << f.getIndex() << " in manifold test." << std::endl;
       return false;
     }
   }
